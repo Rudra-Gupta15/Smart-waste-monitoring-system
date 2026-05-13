@@ -1,0 +1,32 @@
+@echo off
+echo =====================================================
+echo   Smart Waste Management - Startup Script
+echo =====================================================
+echo.
+
+REM Check venv exists
+if not exist "venv\Scripts\python.exe" (
+    echo [ERROR] venv not found. Creating it now...
+    py -m venv venv
+    call venv\Scripts\activate
+    python -m pip install -r backend/requirements.txt
+) else (
+    echo [OK] venv found.
+)
+
+echo.
+echo [1/2] Starting Backend (FastAPI on port 8000)...
+start "Backend - FastAPI" cmd /k "cd /d %~dp0 && venv\Scripts\python.exe run_server.py"
+
+echo [2/2] Starting Frontend (Vite/React on port 5173)...
+start "Frontend - Vite" cmd /k "cd /d %~dp0frontend && npm run dev"
+
+echo.
+echo =====================================================
+echo   Backend:  http://localhost:8000
+echo   API Docs: http://localhost:8000/docs
+echo   Frontend: http://localhost:5173
+echo =====================================================
+echo.
+echo Both servers are running in separate windows.
+pause

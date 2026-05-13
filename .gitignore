@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env
+
+# Models & Data
+data/models/*.pt
+data/evidence/*.jpg
+data/evidence/*.png
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node / Frontend
+node_modules/
+frontend/dist/
+frontend/build/
+.eslintcache
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project Specific
+.dist/
+SMART_WASTE_MANAGEMENT_PLAN.md
