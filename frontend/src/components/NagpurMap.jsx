@@ -59,6 +59,23 @@ function createWorkerIcon() {
   });
 }
 
+function createStationIcon() {
+  return L.divIcon({
+    className: '',
+    html: `<div style="
+      width: 24px; height: 24px;
+      background: #10b981;
+      border: 2px solid white;
+      border-radius: 6px;
+      box-shadow: 0 0 10px #10b98180;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; color: white;
+    ">🏛</div>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+  });
+}
+
 const cpStatusColors = { collected: '#22c55e', pending: '#facc15', missed: '#ef4444' };
 
 export default function NagpurMap({
@@ -67,8 +84,22 @@ export default function NagpurMap({
   workers = [],
   showWorkers = false,
   height = '100%',
+  viewType = 'stations',
 }) {
   const activeTickets = tickets.filter(t => t.status !== 'RESOLVED');
+
+  const STATIONS = [
+    { id: 1, name: "Laxmi Nagar Station", pos: [21.1167, 79.0667], zone: 1, cap: "150 MT" },
+    { id: 2, name: "Dharampeth Station", pos: [21.1417, 79.0667], zone: 2, cap: "150 MT" },
+    { id: 3, name: "Hanuman Nagar Station", pos: [21.123, 79.098], zone: 3, cap: "150 MT" },
+    { id: 4, name: "Dhantoli Station", pos: [21.140, 79.085], zone: 4, cap: "150 MT" },
+    { id: 5, name: "Nehru Nagar Station", pos: [21.120, 79.115], zone: 5, cap: "150 MT" },
+    { id: 6, name: "Gandhi Mahal Station", pos: [21.155, 79.100], zone: 6, cap: "150 MT" },
+    { id: 7, name: "Satranjipura Station", pos: [21.165, 79.110], zone: 7, cap: "150 MT" },
+    { id: 8, name: "Lakadganj Station", pos: [21.155, 79.130], zone: 8, cap: "150 MT" },
+    { id: 9, name: "Ashi Nagar Station", pos: [21.185, 79.115], zone: 9, cap: "150 MT" },
+    { id: 10, name: "Mangalwari Station", pos: [21.175, 79.080], zone: 10, cap: "150 MT" },
+  ];
 
   return (
     <MapContainer
@@ -82,8 +113,8 @@ export default function NagpurMap({
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
 
-      {/* Garbage Hotspot Tickets */}
-      {activeTickets.map((t, i) => (
+      {/* Garbage Hotspot Tickets - Only show in hotspots view */}
+      {viewType === 'hotspots' && activeTickets.map((t, i) => (
         <React.Fragment key={`ticket-${t.id}`}>
           <Marker
             position={[t.location.lat, t.location.lng]}
@@ -114,7 +145,7 @@ export default function NagpurMap({
           {/* Hotspot radius circle */}
           <Circle
             center={[t.location.lat, t.location.lng]}
-            radius={100}
+            radius={150}
             pathOptions={{
               color: t.severity === 'CRITICAL' ? '#dc2626' : t.severity === 'HIGH' ? '#ef4444' : '#f97316',
               fillOpacity: 0.1,
@@ -122,6 +153,23 @@ export default function NagpurMap({
             }}
           />
         </React.Fragment>
+      ))}
+
+      {/* Garbage Stations - Only show in stations view */}
+      {viewType === 'stations' && STATIONS.map(s => (
+        <Marker key={`station-${s.id}`} position={s.pos} icon={createStationIcon()}>
+          <Popup>
+            <div style={{ minWidth: 160, color: '#111' }}>
+              <strong style={{ fontSize: 13 }}>{s.name}</strong>
+              <div style={{ fontSize: 11, marginTop: 4 }}>
+                <div><strong>Zone:</strong> {s.zone}</div>
+                <div><strong>Capacity:</strong> {s.cap}</div>
+                <div><strong>Tech:</strong> Solar Hoppers</div>
+                <div style={{ color: '#10b981', fontWeight: 'bold', marginTop: 2 }}>✓ Smart City Active</div>
+              </div>
+            </div>
+          </Popup>
+        </Marker>
       ))}
 
       {/* Collection Points */}

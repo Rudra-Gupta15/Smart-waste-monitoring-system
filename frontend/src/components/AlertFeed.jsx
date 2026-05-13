@@ -24,9 +24,9 @@ function formatTime(timestamp) {
 export default function AlertFeed({ events }) {
   if (!events || events.length === 0) {
     return (
-      <div className="bg-gray-800 rounded-xl p-4 shadow-lg h-full">
-        <h3 className="text-white font-semibold text-sm mb-4">Live Detection Feed</h3>
-        <div className="text-gray-500 text-center py-8">
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 h-full">
+        <h3 className="text-slate-800 font-semibold text-sm mb-4">Live Detection Feed</h3>
+        <div className="text-slate-400 text-center py-8">
           <p className="text-sm">Monitoring active...</p>
           <p className="text-xs mt-1">Events appear when waste is detected</p>
         </div>
@@ -35,13 +35,13 @@ export default function AlertFeed({ events }) {
   }
 
   return (
-    <div className="bg-gray-800 rounded-xl p-3 shadow-lg h-full">
-      <h3 className="text-white font-semibold text-sm mb-2">Live Feed ({events.length})</h3>
+    <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-200 h-full">
+      <h3 className="text-slate-800 font-semibold text-sm mb-2">Live Feed ({events.length})</h3>
       <div className="space-y-1.5 max-h-[440px] overflow-y-auto pr-1">
         {events.map((evt, i) => (
           <div
             key={i}
-            className={`border-l-3 rounded-r-lg px-2.5 py-2 border-l-4 ${severityStyle[evt.severity] || 'border-gray-500 bg-gray-700/30'}`}
+            className={`border-l-3 rounded-r-lg px-2.5 py-2 border-l-4 shadow-sm ${severityStyle[evt.severity] || 'border-slate-300 bg-slate-50'}`}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
@@ -50,11 +50,11 @@ export default function AlertFeed({ events }) {
                   evt.severity === 'HIGH' ? 'bg-red-500' :
                   evt.severity === 'MEDIUM' ? 'bg-orange-500' : 'bg-yellow-500'
                 }`}>{evt.severity}</span>
-                <span className="text-white text-xs">
+                <span className="text-slate-700 text-xs font-medium">
                   {evt.object_count} object{evt.object_count > 1 ? 's' : ''}
                 </span>
               </div>
-              <span className="text-gray-500 text-[10px]">{formatTime(evt.timestamp)}</span>
+              <span className="text-slate-400 text-[10px]">{formatTime(evt.timestamp)}</span>
             </div>
             {evt.categories && (
               <div className="flex flex-wrap gap-1 mt-1">
@@ -66,7 +66,7 @@ export default function AlertFeed({ events }) {
             {evt.classes && (
               <div className="flex flex-wrap gap-1 mt-1">
                 {evt.classes.map((cls, j) => (
-                  <span key={j} className="text-[9px] bg-gray-700 text-gray-400 px-1.5 py-0.5 rounded">{cls}</span>
+                  <span key={j} className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200">{cls}</span>
                 ))}
               </div>
             )}

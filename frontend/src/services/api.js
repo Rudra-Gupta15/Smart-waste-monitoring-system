@@ -86,6 +86,31 @@ export async function fetchWorkerTickets(workerId) {
   return res.json();
 }
 
+export async function createWorker(workerData) {
+  const res = await fetch(`${API_BASE}/workers`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(workerData),
+  });
+  return res.json();
+}
+
+export async function updateWorker(workerId, workerData) {
+  const res = await fetch(`${API_BASE}/workers/${workerId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(workerData),
+  });
+  return res.json();
+}
+
+export async function deleteWorker(workerId) {
+  const res = await fetch(`${API_BASE}/workers/${workerId}`, {
+    method: 'DELETE',
+  });
+  return res.json();
+}
+
 // ── Map Data ──
 export async function fetchCollectionPoints() {
   const res = await fetch(`${API_BASE}/collection-points`);

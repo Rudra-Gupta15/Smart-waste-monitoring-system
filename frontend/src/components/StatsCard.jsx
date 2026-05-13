@@ -11,10 +11,11 @@ const colorMap = {
 
 export default function StatsCard({ title, value, subtitle, color = 'blue' }) {
   return (
-    <div className={`bg-gradient-to-br ${colorMap[color] || colorMap.blue} rounded-xl p-4 text-white shadow-lg`}>
-      <p className="text-[11px] opacity-80">{title}</p>
-      <p className="text-2xl font-bold mt-0.5">{value}</p>
-      {subtitle && <p className="text-[10px] opacity-70 mt-0.5">{subtitle}</p>}
+    <div className="bg-white rounded-xl p-4 text-slate-800 shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-shadow">
+      <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${colorMap[color] || colorMap.blue}`}></div>
+      <p className="text-[11px] text-slate-500 font-medium">{title}</p>
+      <p className="text-2xl font-bold mt-1 text-slate-900">{value}</p>
+      {subtitle && <p className="text-[10px] text-slate-400 mt-1">{subtitle}</p>}
     </div>
   );
 }

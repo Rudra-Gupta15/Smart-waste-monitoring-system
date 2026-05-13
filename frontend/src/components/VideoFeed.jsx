@@ -39,12 +39,12 @@ export default function VideoFeed() {
   };
 
   return (
-    <div className="bg-gray-800 rounded-xl overflow-hidden shadow-lg border border-gray-700">
-      <div className="px-4 py-2.5 border-b border-gray-700 flex items-center justify-between bg-gray-800/50">
+    <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-slate-200">
+      <div className="px-4 py-2.5 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
         <div className="flex items-center gap-3">
-          <h3 className="text-white font-semibold text-sm">AI Camera Feed - Waste Detection</h3>
+          <h3 className="text-slate-800 font-semibold text-sm">AI Camera Feed - Waste Detection</h3>
           {status && (
-            <span className="text-[10px] bg-gray-700 px-2 py-0.5 rounded text-gray-400 font-mono">
+            <span className="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded text-slate-500 font-mono">
               src: {status.source}
             </span>
           )}
@@ -52,27 +52,27 @@ export default function VideoFeed() {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => setShowSettings(!showSettings)}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-slate-400 hover:text-slate-600 transition-colors"
             title="Camera Settings"
           >
             <span className="text-lg">⚙</span>
           </button>
           <span className="flex items-center gap-2">
             <span className={`w-2 h-2 rounded-full ${error ? 'bg-red-500' : 'bg-green-500 alert-pulse'}`}></span>
-            <span className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">{error ? 'Offline' : 'Live'}</span>
+            <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">{error ? 'Offline' : 'Live'}</span>
           </span>
         </div>
       </div>
 
       {showSettings && (
-        <div className="p-4 bg-gray-900/80 border-b border-gray-700 backdrop-blur-sm">
+        <div className="p-4 bg-slate-50 border-b border-slate-200 backdrop-blur-sm">
           <form onSubmit={handleUpdateSource} className="flex gap-2">
             <input 
               type="text" 
               placeholder="Source (0, 1, or URL)"
               value={newSource}
               onChange={(e) => setNewSource(e.target.value)}
-              className="flex-1 bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm text-white focus:outline-none focus:border-green-500"
+              className="flex-1 bg-white border border-slate-200 rounded px-3 py-1.5 text-sm text-slate-800 focus:outline-none focus:border-green-500 shadow-sm"
             />
             <button 
               type="submit"
@@ -82,7 +82,7 @@ export default function VideoFeed() {
               {loading ? 'Updating...' : 'Switch'}
             </button>
           </form>
-          <p className="text-[10px] text-gray-500 mt-2">
+          <p className="text-[10px] text-slate-400 mt-2">
             * Use 0/1 for local webcams, or enter DroidCam/IP URL (e.g. http://192.168.1.10:4747/video)
           </p>
         </div>
