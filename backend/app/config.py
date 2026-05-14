@@ -48,18 +48,21 @@ PER_CLASS_CONFIDENCE = {
     "toaster":      0.30,
     "chair":        0.25,
     "bird":         0.10,
+    "plastic":      0.10,
+    "paper":        0.10,
+    "waste":        0.10,
 }
 
 # YOLO model path — check multiple locations in priority order:
 # 1. Custom garbage.pt in data/models/
 # 2. yolov8m.pt in data/models/
 # 3. yolov8m.pt in project root (common download location)
-GARBAGE_MODEL = MODELS_DIR / "garbage.pt"
+GARBAGE_MODEL = MODELS_DIR / "best_model.pt"
 _models_dir_yolo = MODELS_DIR / "yolov8m.pt"
 _root_yolo = BASE_DIR / "yolov8m.pt"
-# if GARBAGE_MODEL.exists():
-#     YOLO_MODEL = str(GARBAGE_MODEL)
-if _models_dir_yolo.exists():
+if GARBAGE_MODEL.exists():
+    YOLO_MODEL = str(GARBAGE_MODEL)
+elif _models_dir_yolo.exists():
     YOLO_MODEL = str(_models_dir_yolo)
 elif _root_yolo.exists():
     YOLO_MODEL = str(_root_yolo)
@@ -104,17 +107,22 @@ for _cls in FURNITURE_WASTE:   WASTE_CATEGORY_MAP[_cls] = "Furniture Waste"
 for _cls in ELECTRONIC_WASTE:  WASTE_CATEGORY_MAP[_cls] = "E-Waste"
 WASTE_CATEGORY_MAP["person"] = "Person"
 
-# Support for custom garbage.pt classes
-CUSTOM_GARBAGE = {"garbage", "plastic_bag", "trash_bag", "litter", "garbage_pile", "bin"}
+# Support for custom garbage.pt and best_model.pt classes
+CUSTOM_GARBAGE = {"glass", "metal", "paper", "plastic", "waste", "garbage", "plastic_bag", "trash_bag", "litter", "garbage_pile", "bin"}
 WASTE_CLASSES |= CUSTOM_GARBAGE
 for _cls in CUSTOM_GARBAGE:
-    WASTE_CATEGORY_MAP[_cls] = "Garbage"
+    if _cls == "plastic": WASTE_CATEGORY_MAP[_cls] = "Plastic Waste"
+    elif _cls == "paper": WASTE_CATEGORY_MAP[_cls] = "Paper/Stationery"
+    elif _cls == "glass": WASTE_CATEGORY_MAP[_cls] = "Glass Waste"
+    elif _cls == "metal": WASTE_CATEGORY_MAP[_cls] = "Metal Waste"
+    else: WASTE_CATEGORY_MAP[_cls] = "Garbage"
 
 # Custom garbage classes (when using fine-tuned TACO model)
 GARBAGE_CLASSES = {
-    "garbage", "trash", "litter", "waste", "garbage_bag",
+    "glass", "metal", "paper", "plastic", "waste",
+    "garbage", "trash", "litter", "garbage_bag",
     "garbage_pile", "plastic_bag", "bottle", "can",
-    "paper", "cardboard", "debris", "overflowing_bin",
+    "cardboard", "debris", "overflowing_bin", "trash_bag", "bin"
 }
 
 # Severity thresholds — raised so 1 object alone = LOW (not medium/high)

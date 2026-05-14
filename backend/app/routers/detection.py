@@ -242,7 +242,7 @@ async def detection_events_ws(websocket: WebSocket):
                         "lat": result.lat,
                         "lng": result.lng,
                         "area": result.area,
-                        "classes": [d.class_name for d in result.detections],
+                        "classes": [c for d in result.detections for c in (d.types_list if hasattr(d, "types_list") and d.types_list else [d.class_name])],
                         "categories": [d.category for d in result.detections],
                         "detections": [
                             {

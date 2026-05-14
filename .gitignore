@@ -8,10 +8,13 @@ env/
 
 # Models & Data
 *.pt
-data/models/*.pt
-data/evidence/*.jpg
-data/evidence/*.png
-
+*.onnx
+*.weights
+*.jpg
+*.jpeg
+*.png
+*.mp4
+*.avi
 # IDEs
 .vscode/
 .idea/

@@ -53,6 +53,7 @@ class Detection:
     lat: float = 0.0
     lng: float = 0.0
     area: str = "Unknown"
+    types_list: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -195,13 +196,15 @@ class WasteDetector:
         frame_area = frame_h * frame_w
 
         # --- YOLO inference ---
-        results = self.model(frame, conf=self.confidence, verbose=False)[0]
+        # Pass the lowest possible confidence we care about to YOLO so it doesn't drop boxes early
+        min_model_conf = min(list(PER_CLASS_CONFIDENCE.values()) + [self.confidence]) if PER_CLASS_CONFIDENCE else self.confidence
+        results = self.model(frame, conf=min_model_conf, verbose=False)[0]
 
         # 1. Extract raw detections from this frame
         current_detections: List[Detection] = []
         for box in results.boxes:
             class_id = int(box.cls[0])
-            class_name = self.class_names.get(class_id, "unknown")
+            class_name = self.class_names.get(class_id, "unknown").lower()
             conf = float(box.conf[0])
 
             # 1. Explicit exclusion: Never treat actual animals as waste
@@ -234,6 +237,59 @@ class WasteDetector:
                 color=CATEGORY_COLORS.get(category, CATEGORY_COLORS["default"]),
                 streak=1,
             ))
+
+        # --- Group overlapping boxes into 'garbage_pile' ---
+        waste_dets = [d for d in current_detections if d.class_name != "person"]
+        person_dets = [d for d in current_detections if d.class_name == "person"]
+        
+        if len(waste_dets) >= 3:
+            clusters = []
+            MARGIN = 150
+            
+            for det in waste_dets:
+                x1, y1, x2, y2 = det.bbox
+                b_x1, b_y1 = x1 - MARGIN, y1 - MARGIN
+                b_x2, b_y2 = x2 + MARGIN, y2 + MARGIN
+                
+                matched_clusters = []
+                for i, cluster in enumerate(clusters):
+                    cx1, cy1, cx2, cy2 = cluster["bbox"]
+                    if not (b_x2 < cx1 or b_x1 > cx2 or b_y2 < cy1 or b_y1 > cy2):
+                        matched_clusters.append(i)
+                
+                if not matched_clusters:
+                    clusters.append({"bbox": [x1, y1, x2, y2], "dets": [det]})
+                else:
+                    merged_dets = [det]
+                    min_x, min_y, max_x, max_y = x1, y1, x2, y2
+                    for i in sorted(matched_clusters, reverse=True):
+                        c = clusters.pop(i)
+                        merged_dets.extend(c["dets"])
+                        cx1, cy1, cx2, cy2 = c["bbox"]
+                        min_x = min(min_x, cx1)
+                        min_y = min(min_y, cy1)
+                        max_x = max(max_x, cx2)
+                        max_y = max(max_y, cy2)
+                    clusters.append({"bbox": [min_x, min_y, max_x, max_y], "dets": merged_dets})
+            
+            final_waste = []
+            for c in clusters:
+                if len(c["dets"]) >= 3:
+                    types = list(set([d.class_name for d in c["dets"]]))
+                    pile_det = Detection(
+                        class_name="garbage_pile",
+                        confidence=max([d.confidence for d in c["dets"]]),
+                        bbox=c["bbox"],
+                        category="Garbage",
+                        color=CATEGORY_COLORS.get("Garbage", CATEGORY_COLORS["default"]),
+                        streak=1,
+                        types_list=types
+                    )
+                    final_waste.append(pile_det)
+                else:
+                    final_waste.extend(c["dets"])
+            
+            current_detections = person_dets + final_waste
 
         # 2. Update tracking (thread-safe)
         with self._track_lock:
@@ -286,6 +342,7 @@ class WasteDetector:
 
                 track.bbox = match.bbox
                 track.confidence = match.confidence
+                track.types_list = match.types_list
                 track.streak += 1
                 track.missed_count = 0
 
@@ -367,7 +424,10 @@ class WasteDetector:
                 wait = max(0.0, 3.0 - (now - det.stationary_start))
                 status = f"ANALYZING ({wait:.1f}s)"
 
-            label = f"#{det.id} {det.class_name}: {status}"
+            display_name = det.class_name
+            if hasattr(det, "types_list") and det.types_list:
+                display_name += f" ({','.join(det.types_list)})"
+            label = f"#{det.id} {display_name}: {status}"
 
             # Bounding box
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
