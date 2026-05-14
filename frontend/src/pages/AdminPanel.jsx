@@ -123,7 +123,7 @@ export default function AdminPanel() {
     }
     prevNotifsLen.current = notifications.length;
   }, [notifications]);
-  
+
   // Real-time Browser Location Sync
   const syncLocation = () => {
     if ("geolocation" in navigator) {
@@ -136,10 +136,10 @@ export default function AdminPanel() {
           const areaName = result?.area || 'Nagpur Central';
           setUserLocation([latitude, longitude]);
           setCurrentAreaName(areaName);
-          toast.success(`📍 ${areaName}`, { 
+          toast.success(areaName, {
             id: 'geo-sync',
             icon: '📍',
-            style: { borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' } 
+            style: { borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }
           });
           // Refresh stats to update area name
           const s = await fetchAdminStats();
@@ -164,10 +164,10 @@ export default function AdminPanel() {
       const areaName = result?.area || 'Nagpur Central';
       setUserLocation([lat, lng]);
       setCurrentAreaName(areaName);
-      toast.success(`📍 ${areaName}`, { 
+      toast.success(areaName, {
         id: 'geo-sync',
         icon: '📍',
-        style: { borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' } 
+        style: { borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }
       });
       const s = await fetchAdminStats();
       setStats(s);
@@ -186,7 +186,7 @@ export default function AdminPanel() {
 
       {/* Mobile Sidebar Overlay */}
       {showMobileMenu && (
-        <div 
+        <div
           className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 md:hidden"
           onClick={() => setShowMobileMenu(false)}
         ></div>
@@ -194,12 +194,15 @@ export default function AdminPanel() {
 
       {/* Sidebar */}
       <aside className={`
-        w-64 bg-white border-r border-slate-200 flex flex-col fixed h-full z-50 transition-transform duration-300
+        w-[15.5rem] bg-white border-r border-slate-200 flex flex-col fixed h-full z-50 transition-transform duration-300
         ${showMobileMenu ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
-        <div className="px-4 py-5 border-b border-slate-200 flex items-center justify-between">
+
+        <div className="px-4 py-[1.125rem] border-b border-slate-200 flex items-center justify-between">
+
+
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center font-bold text-white shadow-lg shadow-green-100">W</div>
+            <div className="w-8 h-8 bg-green-600 rounded-none flex items-center justify-center font-bold text-white shadow-lg shadow-green-100">W</div>
             <div>
               <h1 className="text-sm font-black tracking-tight text-slate-900 leading-none">Smart Waste</h1>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Nagpur Admin</p>
@@ -207,6 +210,7 @@ export default function AdminPanel() {
           </div>
           <button className="md:hidden text-slate-400 text-xl" onClick={() => setShowMobileMenu(false)}>&times;</button>
         </div>
+
         <nav className="flex-1 py-3 overflow-y-auto">
           {TABS.map(t => (
             <button
@@ -226,19 +230,22 @@ export default function AdminPanel() {
           ))}
         </nav>
         <div className="border-t border-slate-200 p-4">
-          <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg">
-            <span className="w-2 h-2 bg-green-500 rounded-full alert-pulse"></span>
+          <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-none">
+            <span className="w-2 h-2 bg-green-500 rounded-none alert-pulse"></span>
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">System Active</span>
           </div>
         </div>
+
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden md:ml-64">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden md:ml-[15.5rem]">
+
+
         {/* Top Bar */}
         <header className="bg-white border-b border-slate-200 px-4 md:px-6 py-3 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-3">
-            <button 
+            <button
               className="md:hidden w-10 h-10 flex items-center justify-center bg-slate-50 rounded-xl text-slate-500"
               onClick={() => setShowMobileMenu(true)}
             >
@@ -247,32 +254,35 @@ export default function AdminPanel() {
             <h2 className="text-sm md:text-lg font-black text-slate-800 tracking-tight">{TABS.find(t => t.id === tab)?.label}</h2>
           </div>
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={syncLocation}
-              className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-600 transition-all active:scale-95"
+              className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-md text-[10px] font-black uppercase tracking-widest text-slate-600 transition-all active:scale-95"
             >
               <span>📍</span> Sync GPS
             </button>
+
             {/* Live location name pill */}
             {userLocation && (
-              <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 rounded-lg">
-                <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+              <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 rounded-md">
+                <span className="w-1.5 h-1.5 bg-green-500 rounded-sm animate-pulse"></span>
                 <span className="text-[10px] font-black text-green-700 uppercase tracking-widest truncate max-w-[180px]">{currentAreaName}</span>
               </div>
             )}
+
             <span className="text-xs text-slate-500">Nagpur Municipal Corporation</span>
             <button
               onClick={() => setShowNotifs(!showNotifs)}
-              className="relative p-2 hover:bg-slate-100 rounded-lg text-slate-600"
+              className="relative p-2 hover:bg-slate-100 rounded-none text-slate-600"
             >
               <span className="text-lg">&#9881;</span>
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-none">
                   {unreadCount}
                 </span>
               )}
             </button>
           </div>
+
         </header>
 
         {/* Notification Drawer */}
@@ -282,13 +292,14 @@ export default function AdminPanel() {
             onClose={() => setShowNotifs(false)}
             onMarkRead={async (id) => {
               await markNotificationRead(id);
-              setNotifications(prev => prev.map(n => n.id === id ? {...n, read: true} : n));
+              setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
             }}
           />
         )}
 
-        <div className="flex-1 p-6 md:p-8 overflow-hidden h-full">
-          <div className="max-w-[1600px] mx-auto h-full">
+        <div className={`flex-1 overflow-hidden h-full ${['monitor', 'map'].includes(tab) ? 'p-0' : 'p-4 md:p-6'}`}>
+          <div className={`h-full ${['monitor', 'map'].includes(tab) ? 'max-w-none' : 'max-w-[1600px] mx-auto'}`}>
+
             {!stats ? (
               <div className="flex items-center justify-center h-full">
                 <div className="flex flex-col items-center gap-4">
@@ -314,36 +325,66 @@ export default function AdminPanel() {
 }
 
 // ── Overview Tab ──
-function OverviewTab({ stats, tickets, events, alerts, userLocation, onLocationSelect }) {
+function OverviewTab({ stats, tickets, events, alerts, userLocation, currentAreaName, onLocationSelect }) {
   if (!stats) return <div className="text-gray-500">Loading...</div>;
 
   const recentTickets = [...tickets].sort((a, b) => b.created_at - a.created_at).slice(0, 5);
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-6">
+
+      {/* Page Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">Operational Analytics</p>
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight">System Overview</h2>
+        </div>
+        <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-md border border-slate-200 shadow-sm">
+          <div className="text-right">
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Current Session</p>
+            <p className="text-xs font-black text-slate-700 leading-none">{today}</p>
+          </div>
+          <div className="w-8 h-8 bg-slate-50 rounded-md flex items-center justify-center text-lg">📅</div>
+        </div>
+
+
+      </div>
+
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+
         <StatsCard title="Total Tickets" value={stats.total_tickets} subtitle="Auto-generated" color="blue" />
         <StatsCard title="Open Tickets" value={stats.open_tickets + stats.assigned_tickets} subtitle="Needs attention" color="orange" />
         <StatsCard title="In Progress" value={stats.in_progress_tickets} subtitle="Workers active" color="green" />
         <StatsCard title="Resolved" value={stats.resolved_tickets} subtitle="Cleaned up" color="purple" />
-        <StatsCard title="Pickup Rate" value={`${stats.pickup_rate}%`} subtitle={`${stats.pickups_completed}/${stats.collection_points_total}`} color="green" />
+        <StatsCard title="Pickup Rate" value={`${stats.pickup_rate}%`} subtitle={`${stats.pickups_completed}/${stats.collection_points_total}`} color="cyan" />
         <StatsCard title="Active Alerts" value={stats.active_alerts} subtitle="Unacknowledged" color="red" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Mini Map */}
-        <div className="lg:col-span-2 bg-white rounded-xl overflow-hidden shadow-sm border border-slate-200" style={{ height: '400px' }}>
-          <div className="px-4 py-2 border-b border-slate-200 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-800">Nagpur - Live Garbage Hotspots</h3>
-            <span className="text-xs text-slate-500">{tickets.filter(t => t.status !== 'RESOLVED').length} active incidents</span>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+        {/* Mini Map Container */}
+        <div className="lg:col-span-2 flex flex-col bg-white rounded-md overflow-hidden shadow-sm border border-slate-200" style={{ height: '480px' }}>
+          <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 bg-green-500 rounded-sm"></div>
+              <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Live Garbage Hotspots</h3>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-white border border-slate-200 rounded-md shadow-xs">
+                <span className="w-1.5 h-1.5 bg-red-500 rounded-sm animate-pulse"></span>
+                <span className="text-[10px] font-black text-slate-600 uppercase tracking-tighter">{tickets.filter(t => t.status !== 'RESOLVED').length} Active Incidents</span>
+              </div>
+            </div>
           </div>
-          <div style={{ height: 'calc(100% - 40px)' }}>
-            <NagpurMap 
-              tickets={tickets} 
+
+
+          <div className="flex-1 relative">
+            <NagpurMap
+              tickets={tickets}
               liveDetections={events.filter(e => (Date.now() / 1000 - e.timestamp) < 30)}
-              showWorkers={false} 
-              height="100%" 
+              showWorkers={false}
+              height="100%"
               center={userLocation}
               userLocation={userLocation}
               onLocationSelect={onLocationSelect}
@@ -351,44 +392,75 @@ function OverviewTab({ stats, tickets, events, alerts, userLocation, onLocationS
           </div>
         </div>
 
-        {/* Recent Alerts */}
-        <div>
-          <AlertFeed events={events.slice(0, 15)} />
+        {/* Recent Alerts Feed Container */}
+        <div style={{ height: '480px' }}>
+          <AlertFeed events={events.slice(0, 15)} currentAreaName={currentAreaName} />
         </div>
       </div>
 
-      {/* Recent Tickets */}
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-        <h3 className="text-sm font-semibold mb-3 text-slate-800">Recent Auto-Generated Tickets</h3>
+      {/* Recent Tickets Table Section */}
+      <div className="bg-white rounded-md shadow-sm border border-slate-200 overflow-hidden">
+        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
+          <div>
+            <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Recent Auto-Generated Tickets</h3>
+            <p className="text-[10px] text-slate-400 font-bold mt-1">LATEST SYSTEM-GENERATED TASKS FROM COMPUTER VISION DETECTIONS</p>
+          </div>
+          <button className="text-[10px] font-black text-green-600 hover:text-green-700 uppercase tracking-[0.1em] px-3 py-1.5 bg-green-50 rounded-md transition-colors border border-green-100">
+            View All Tickets
+          </button>
+        </div>
+
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-slate-500 border-b border-slate-200">
-                <th className="text-left py-2 px-3">ID</th>
-                <th className="text-left py-2 px-3">Location</th>
-                <th className="text-left py-2 px-3">Severity</th>
-                <th className="text-left py-2 px-3">Status</th>
-                <th className="text-left py-2 px-3">Worker</th>
-                <th className="text-left py-2 px-3">Time</th>
+              <tr className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                <th className="text-left py-4 px-6">ID</th>
+                <th className="text-left py-4 px-6">Location Address</th>
+                <th className="text-left py-4 px-6">Severity Level</th>
+                <th className="text-left py-4 px-6">Current Status</th>
+                <th className="text-left py-4 px-6">Assigned Personnel</th>
+                <th className="text-left py-4 px-6">Timestamp</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-50">
               {recentTickets.map(t => (
-                <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="py-2 px-3 font-mono text-xs text-slate-600">{t.id}</td>
-                  <td className="py-2 px-3 text-xs text-slate-600">{t.location.address}</td>
-                  <td className="py-2 px-3">
+                <tr key={t.id} className="hover:bg-slate-50/80 transition-colors group">
+                  <td className="py-4 px-6 font-mono text-[11px] text-slate-500 font-bold">#{t.id.slice(-6)}</td>
+                  <td className="py-4 px-6">
+                    <p className="text-xs font-black text-slate-700 leading-tight">{t.location.address}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">{t.location.area || 'Unknown Zone'}</p>
+                  </td>
+                  <td className="py-4 px-6">
                     <SeverityBadge severity={t.severity} />
                   </td>
-                  <td className="py-2 px-3">
+                  <td className="py-4 px-6">
                     <StatusBadge status={t.status} />
                   </td>
-                  <td className="py-2 px-3 text-xs text-slate-600">{t.assigned_worker?.name}</td>
-                  <td className="py-2 px-3 text-xs text-slate-500">{new Date(t.created_at * 1000).toLocaleTimeString()}</td>
+                  <td className="py-4 px-6">
+                    {t.assigned_worker ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 bg-slate-100 rounded-full flex items-center justify-center text-[10px]">👤</div>
+                        <span className="text-xs font-bold text-slate-600">{t.assigned_worker.name}</span>
+                      </div>
+                    ) : (
+                      <span className="text-[10px] font-bold text-slate-300 italic">Unassigned</span>
+                    )}
+                  </td>
+                  <td className="py-4 px-6 text-[10px] font-bold text-slate-400 group-hover:text-slate-600 transition-colors">
+                    {new Date(t.created_at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </td>
                 </tr>
               ))}
               {recentTickets.length === 0 && (
-                <tr><td colSpan={6} className="text-center py-8 text-gray-500">No tickets yet — AI will auto-generate when garbage is detected</td></tr>
+                <tr>
+                  <td colSpan={6} className="text-center py-12">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="text-4xl grayscale opacity-20">🤖</div>
+                      <p className="text-xs font-black text-slate-300 uppercase tracking-widest">Awaiting Vision Detections...</p>
+                    </div>
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
@@ -398,15 +470,16 @@ function OverviewTab({ stats, tickets, events, alerts, userLocation, onLocationS
   );
 }
 
+
 // ── Live Monitor Tab ──
 function MonitorTab({ events, currentAreaName }) {
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+    <div className="h-full flex flex-col">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-2" style={{ height: 'calc(100vh - 65px)' }}>
+        <div className="lg:col-span-3 flex flex-col h-full bg-black">
           <VideoFeed />
         </div>
-        <div>
+        <div className="h-full overflow-hidden bg-white border-l border-slate-200">
           <AlertFeed events={events} currentAreaName={currentAreaName} />
         </div>
       </div>
@@ -414,13 +487,15 @@ function MonitorTab({ events, currentAreaName }) {
   );
 }
 
+
+
 // ── Garbage Station Tab ──
 function MapTab({ tickets, collectionPoints, workers, liveDetections, userLocation, onLocationSelect }) {
   const [viewType, setViewType] = useState('stations'); // 'stations' or 'hotspots'
   const [selectedStation, setSelectedStation] = useState(null);
   const [trucks, setTrucks] = useState([]);
   const [selectedHotspot, setSelectedHotspot] = useState(null);
-  
+
   // Station coordinates (must match NagpurMap STATIONS)
   const stationCoords = {
     1: [21.1167, 79.0667], 2: [21.1417, 79.0667], 3: [21.1230, 79.0980],
@@ -508,19 +583,21 @@ function MapTab({ tickets, collectionPoints, workers, liveDetections, userLocati
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-140px)]">
+    <div className="flex flex-col lg:flex-row gap-0 h-[calc(100vh-65px)]">
+
       {/* Map Side */}
-      <div className="flex-1 flex flex-col gap-4 min-w-0">
-        <div className="flex gap-4 flex-wrap text-[10px] font-medium uppercase tracking-wider text-slate-500">
-          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-500"></span> Garbage Hotspot</span>
-          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-green-500"></span> Station (Active)</span>
-          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-amber-500"></span> Auto Tipper</span>
-          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-blue-500"></span> Tata 407</span>
-          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500"></span> Electric</span>
-          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-purple-500"></span> Heavy Tipper</span>
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex gap-4 flex-wrap text-[10px] font-medium uppercase tracking-wider text-slate-500 p-4 bg-slate-50/50 border-b border-slate-200">
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-none bg-red-500"></span> Garbage Hotspot</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-none bg-green-500"></span> Station (Active)</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-none bg-amber-500"></span> Auto Tipper</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-none bg-blue-500"></span> Tata 407</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-none bg-emerald-500"></span> Electric</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-none bg-purple-500"></span> Heavy Tipper</span>
         </div>
-        
-        <div className="flex-1 bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-200 relative flex">
+
+        <div className="flex-1 bg-white rounded-none overflow-hidden relative flex">
+
           <div className="flex-1 relative">
             <NagpurMap
               tickets={tickets}
@@ -539,8 +616,9 @@ function MapTab({ tickets, collectionPoints, workers, liveDetections, userLocati
             />
             {/* Active zone overlay badge */}
             {selectedStation && (
-              <div className="absolute top-3 right-3 z-[1000] bg-white/90 backdrop-blur-sm border border-emerald-200 rounded-xl px-4 py-2 shadow-lg flex items-center gap-2">
-                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+              <div className="absolute top-3 right-3 z-[1000] bg-white/90 backdrop-blur-sm border border-emerald-200 rounded-none px-4 py-2 shadow-lg flex items-center gap-2">
+                <span className="w-2 h-2 bg-emerald-500 rounded-none animate-pulse"></span>
+
                 <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">
                   Zone {selectedStation} — {zones.find(z => z.id === selectedStation)?.name}
                 </span>
@@ -553,25 +631,26 @@ function MapTab({ tickets, collectionPoints, workers, liveDetections, userLocati
                 >×</button>
               </div>
             )}
-            
+
             {/* Google Maps Style Floating Left Panel */}
             <div className={`absolute top-0 left-0 h-full w-80 bg-white z-[1000] shadow-2xl transition-transform duration-300 ease-in-out flex flex-col border-r border-slate-200 ${selectedStation ? 'translate-x-0' : '-translate-x-full'}`}>
               {selectedStation && (
                 <>
                   <div className="relative">
-                    <img 
-                      src="https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&q=80" 
-                      alt="Station Facility" 
+                    <img
+                      src="https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&q=80"
+                      alt="Station Facility"
                       className="w-full h-48 object-cover"
                     />
-                    <button 
+                    <button
                       onClick={() => handleStationClick(selectedStation)}
-                      className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur rounded-full flex items-center justify-center text-slate-700 shadow-sm z-10 hover:bg-white transition-colors"
+                      className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur rounded-none flex items-center justify-center text-slate-700 shadow-sm z-10 hover:bg-white transition-colors"
                     >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
                     </button>
                   </div>
-                  
+
                   <div className="flex-1 overflow-y-auto custom-scrollbar pb-6">
                     <div className="p-5 border-b border-slate-100">
                       <h2 className="text-2xl font-bold text-slate-800 mb-1">{zones.find(z => z.id === selectedStation)?.name} Station</h2>
@@ -587,26 +666,28 @@ function MapTab({ tickets, collectionPoints, workers, liveDetections, userLocati
 
                     <div className="flex justify-around p-4 border-b border-slate-100 bg-slate-50/50">
                       <div className="flex flex-col items-center gap-1.5 cursor-pointer group">
-                        <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white transition-colors shadow-sm">
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                        <div className="w-10 h-10 rounded-none bg-emerald-100 flex items-center justify-center text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white transition-colors shadow-sm">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11" /></svg>
                         </div>
                         <span className="text-[11px] text-emerald-700 font-bold tracking-wide">Directions</span>
                       </div>
                       <div className="flex flex-col items-center gap-1.5 cursor-pointer group">
-                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-slate-200 transition-colors border border-slate-200">
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+                        <div className="w-10 h-10 rounded-none bg-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-slate-200 transition-colors border border-slate-200">
+
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" /></svg>
                         </div>
                         <span className="text-[11px] text-slate-600 font-medium">Save</span>
                       </div>
                       <div className="flex flex-col items-center gap-1.5 cursor-pointer group">
-                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-slate-200 transition-colors border border-slate-200">
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                        <div className="w-10 h-10 rounded-none bg-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-slate-200 transition-colors border border-slate-200">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" /><path d="M2 12h20" /></svg>
                         </div>
                         <span className="text-[11px] text-slate-600 font-medium">Nearby</span>
                       </div>
                       <div className="flex flex-col items-center gap-1.5 cursor-pointer group">
-                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-slate-200 transition-colors border border-slate-200">
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>
+                        <div className="w-10 h-10 rounded-none bg-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-slate-200 transition-colors border border-slate-200">
+
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" x2="15.42" y1="13.51" y2="17.49" /><line x1="15.41" x2="8.59" y1="6.51" y2="10.49" /></svg>
                         </div>
                         <span className="text-[11px] text-slate-600 font-medium">Share</span>
                       </div>
@@ -615,17 +696,17 @@ function MapTab({ tickets, collectionPoints, workers, liveDetections, userLocati
                     <div className="p-5 space-y-5">
                       <div className="flex items-start gap-4">
                         <div className="text-emerald-600 mt-0.5">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
                         </div>
                         <div>
                           <p className="text-sm text-slate-800 font-medium">Zone {selectedStation}, Nagpur, Maharashtra 440022</p>
                           <p className="text-[13px] text-slate-500 mt-1">Capacity: {zones.find(z => z.id === selectedStation)?.load}</p>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-start gap-4">
                         <div className="text-emerald-600 mt-0.5">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
                         </div>
                         <div>
                           <span className="text-sm font-bold text-emerald-600">Open 24 hours</span>
@@ -635,17 +716,17 @@ function MapTab({ tickets, collectionPoints, workers, liveDetections, userLocati
 
                       <div className="flex items-start gap-4">
                         <div className="text-emerald-600 mt-0.5">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
                         </div>
                         <div>
                           <p className="text-sm text-slate-800 font-medium">Solar Hoppers Equipped</p>
                           <a href="#" className="text-[13px] text-sky-600 hover:underline cursor-pointer">nmc.gov.in/solid-waste</a>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-start gap-4">
                         <div className="text-emerald-600 mt-0.5">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2" /><path d="M9 22v-4h6v4" /><path d="M8 6h.01" /><path d="M16 6h.01" /><path d="M12 6h.01" /><path d="M12 10h.01" /><path d="M12 14h.01" /><path d="M16 10h.01" /><path d="M16 14h.01" /><path d="M8 10h.01" /><path d="M8 14h.01" /></svg>
                         </div>
                         <div>
                           <p className="text-sm text-slate-800 font-medium">Contractor</p>
@@ -661,59 +742,64 @@ function MapTab({ tickets, collectionPoints, workers, liveDetections, userLocati
         </div>
 
         {/* Truck Footer */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white py-8 px-6 rounded-none border-t border-slate-200">
           {truckStats.map(s => (
             <div key={s.type} className="text-center">
-              <p className="text-[10px] text-slate-400 uppercase font-bold">{s.type}</p>
-              <p className="text-xl font-bold text-slate-800">{s.active}<span className="text-xs text-slate-300 ml-1">/ {s.total}</span></p>
+              <p className="text-[11px] text-slate-400 uppercase font-black tracking-widest mb-1">{s.type}</p>
+              <p className="text-2xl font-black text-slate-900 leading-none">
+                {s.active}
+                <span className="text-sm text-slate-300 font-bold ml-1.5 tracking-tighter">/ {s.total}</span>
+              </p>
             </div>
           ))}
         </div>
       </div>
 
       {/* Info Sidebar */}
-      <div className="w-full lg:w-80 flex flex-col gap-4">
+      <div className="w-full lg:w-80 flex flex-col gap-0 border-l border-slate-200 bg-white">
         {/* Toggle Switch */}
-        <div className="bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm flex">
-          <button 
+        <div className="bg-slate-50 p-1 border-b border-slate-200 flex">
+          <button
             onClick={() => setViewType('stations')}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${viewType === 'stations' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-none transition-all ${viewType === 'stations' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-600'}`}
           >
             Stations
           </button>
-          <button 
+          <button
             onClick={() => setViewType('hotspots')}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${viewType === 'hotspots' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-none transition-all ${viewType === 'hotspots' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-600'}`}
           >
             Hotspots
           </button>
         </div>
 
+
         {/* Info Card */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-1 flex flex-col">
-          <div className="p-4 border-b border-slate-100">
-            <h3 className="font-bold text-slate-800">{viewType === 'stations' ? 'Station Directory' : 'Identified Hotspots'}</h3>
-            <p className="text-[10px] text-slate-400 uppercase font-bold mt-1">
+        <div className="bg-white rounded-none flex-1 flex flex-col overflow-hidden">
+          <div className="p-4 border-b border-slate-100 bg-slate-50/30">
+            <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">{viewType === 'stations' ? 'Station Directory' : 'Identified Hotspots'}</h3>
+            <p className="text-[9px] text-slate-400 font-bold mt-1 uppercase tracking-tight">
               {viewType === 'stations' ? 'Click a zone to see its coverage area' : 'Frequent unauthorized dumping zones'}
             </p>
           </div>
+
           <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
             {viewType === 'stations' ? (
               zones.map(z => {
                 const isSelected = selectedStation === z.id;
                 const zoneTruckCount = trucks.filter(t => t.zone === z.id).length;
                 return (
-                  <div 
-                    key={z.id} 
+                  <div
+                    key={z.id}
                     onClick={() => handleStationClick(z.id)}
-                    className={`p-3 rounded-lg border transition-all cursor-pointer ${
-                      isSelected 
-                        ? 'bg-emerald-50 border-emerald-400 ring-2 ring-emerald-500/20 shadow-md' 
-                        : z.highlight 
-                          ? 'bg-slate-50 border-slate-900 ring-1 ring-slate-900/5 hover:shadow-md' 
-                          : 'bg-white border-slate-100 hover:border-slate-300 hover:shadow-sm'
-                    }`}
+                    className={`p-3 rounded-none border transition-all cursor-pointer ${isSelected
+                        ? 'bg-emerald-50 border-emerald-400 shadow-sm'
+                        : z.highlight
+                          ? 'bg-slate-50 border-slate-900 hover:bg-slate-100'
+                          : 'bg-white border-slate-100 hover:border-slate-300'
+                      }`}
                   >
+
                     <div className="flex justify-between items-start mb-1">
                       <h4 className={`text-xs font-bold ${isSelected ? 'text-emerald-800' : 'text-slate-800'}`}>
                         {z.name} <span className="text-[9px] text-slate-400 ml-1">Zone {z.id}</span>
@@ -729,9 +815,10 @@ function MapTab({ tickets, collectionPoints, workers, liveDetections, userLocati
                     {isSelected && (
                       <div className="mt-2 pt-2 border-t border-emerald-200 flex items-center justify-between">
                         <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-none animate-pulse"></span>
                           Coverage Active
                         </span>
+
                         <span className="text-[9px] text-slate-500 font-bold">
                           {zoneTruckCount} truck{zoneTruckCount !== 1 ? 's' : ''} deployed
                         </span>
@@ -744,7 +831,7 @@ function MapTab({ tickets, collectionPoints, workers, liveDetections, userLocati
               HOTSPOTS_LIST.map(h => {
                 const isSelected = selectedHotspot === h.id;
                 const getRiskStyles = (risk) => {
-                  switch(risk) {
+                  switch (risk) {
                     case 'Extreme': return 'bg-red-50 text-red-700 border-red-200';
                     case 'High': return 'bg-orange-50 text-orange-700 border-orange-200';
                     case 'Medium': return 'bg-amber-50 text-amber-700 border-amber-200';
@@ -752,26 +839,26 @@ function MapTab({ tickets, collectionPoints, workers, liveDetections, userLocati
                   }
                 };
                 return (
-                  <div 
-                    key={`hs-${h.id}`} 
+                  <div
+                    key={`hs-${h.id}`}
                     onClick={() => setSelectedHotspot(h.id)}
-                    className={`p-3 border rounded-lg cursor-pointer transition-all flex flex-col gap-2 relative overflow-hidden group ${
-                      isSelected 
-                        ? 'bg-red-50/50 border-red-400 ring-2 ring-red-500/20 shadow-md' 
-                        : 'bg-white border-slate-100 hover:border-slate-300 hover:shadow-sm'
-                    }`}
+                    className={`p-3 border rounded-none cursor-pointer transition-all flex flex-col gap-2 relative overflow-hidden group ${isSelected
+                        ? 'bg-red-50/50 border-red-400 shadow-sm'
+                        : 'bg-white border-slate-100 hover:border-slate-300'
+                      }`}
                   >
                     <div className={`absolute top-0 left-0 w-1 h-full transition-colors ${isSelected ? 'bg-red-500' : 'bg-slate-200 group-hover:bg-slate-400'}`}></div>
                     <div className="flex justify-between items-start pl-2">
                       <div>
-                        <h4 className={`text-xs font-bold ${isSelected ? 'text-red-900' : 'text-slate-800'}`}>{h.area}</h4>
+                        <h4 className={`text-xs font-black ${isSelected ? 'text-red-900' : 'text-slate-800 uppercase tracking-tight'}`}>{h.area}</h4>
                         <p className="text-[10px] text-slate-500 mt-0.5">{h.zone} Zone</p>
                       </div>
-                      <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase border ${getRiskStyles(h.risk)}`}>
+                      <span className={`text-[9px] px-2 py-0.5 rounded-none font-bold uppercase border ${getRiskStyles(h.risk)}`}>
                         {h.risk} Risk
                       </span>
                     </div>
                   </div>
+
                 );
               })
             )}
@@ -795,7 +882,7 @@ function TicketsTab({ tickets, setTickets, readOnly }) {
 // ── Alerts Tab ──
 function AlertsTab({ alerts, onAcknowledge }) {
   const [filter, setFilter] = useState('ALL');
-  
+
   const stats = {
     CRITICAL: alerts.filter(a => a.severity === 'CRITICAL').length,
     HIGH: alerts.filter(a => a.severity === 'HIGH').length,
@@ -810,26 +897,26 @@ function AlertsTab({ alerts, onAcknowledge }) {
   });
 
   return (
-    <div className="space-y-8 h-full flex flex-col">
+    <div className="space-y-6 h-full flex flex-col pb-6">
       {/* Alert Summary Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 flex-shrink-0 w-full">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 flex-shrink-0 w-full">
         {[
           { label: 'Critical', count: stats.CRITICAL, color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-100', id: 'CRITICAL' },
-          { label: 'High', count: stats.HIGH, color: 'text-red-500', bg: 'bg-red-50/50', border: 'border-red-100/50', id: 'HIGH' },
+          { label: 'High', count: stats.HIGH, countColor: 'text-rose-600', color: 'text-rose-500', bg: 'bg-rose-50/50', border: 'border-rose-100/50', id: 'HIGH' },
           { label: 'Medium', count: stats.MEDIUM, color: 'text-orange-500', bg: 'bg-orange-50', border: 'border-orange-100', id: 'MEDIUM' },
-          { label: 'Low', count: stats.LOW, color: 'text-yellow-600', bg: 'bg-yellow-50', border: 'border-yellow-100', id: 'LOW' },
+          { label: 'Low', count: stats.LOW, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', id: 'LOW' },
         ].map(s => (
-          <button 
+          <button
             key={s.label}
             onClick={() => setFilter(filter === s.id ? 'ALL' : s.id)}
-            className={`p-3 rounded-xl border transition-all text-left group ${s.bg} ${s.border} ${filter === s.id ? 'ring-2 ring-slate-900 shadow-md' : 'hover:shadow-sm'} min-w-0`}
+            className={`p-4 rounded-md border transition-all text-left group ${s.bg} ${s.border} ${filter === s.id ? 'ring-2 ring-slate-900 shadow-sm' : 'hover:shadow-sm'} min-w-0`}
           >
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <p className={`text-[9px] font-black uppercase tracking-widest ${s.color} mb-0.5 truncate`}>{s.label}</p>
-                <p className="text-xl font-black text-slate-900 leading-none">{s.count}</p>
+                <p className={`text-[10px] font-black uppercase tracking-widest ${s.color} mb-1 truncate`}>{s.label}</p>
+                <p className={`text-2xl font-black text-slate-900 leading-none ${s.countColor || ''}`}>{s.count}</p>
               </div>
-              <div className={`w-7 h-7 rounded-lg flex items-center justify-center opacity-20 group-hover:opacity-40 transition-opacity ${s.bg} border ${s.border} flex-shrink-0`}>
+              <div className={`w-8 h-8 rounded-md flex items-center justify-center opacity-20 group-hover:opacity-50 transition-opacity ${s.bg} border ${s.border} flex-shrink-0 text-lg`}>
                 {s.id === 'CRITICAL' && '⚡'}
                 {s.id === 'HIGH' && '🔥'}
                 {s.id === 'MEDIUM' && '🔔'}
@@ -842,15 +929,15 @@ function AlertsTab({ alerts, onAcknowledge }) {
 
       <div className="flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-4">
-          <h3 className="text-base font-black text-slate-800 tracking-tight">Active Incident Log</h3>
-          <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full uppercase">{filtered.length} Results</span>
+          <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Active Incident Log</h3>
+          <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md uppercase tracking-tighter">{filtered.length} Results</span>
         </div>
-        <div className="flex bg-white border border-slate-200 rounded-lg p-0.5 shadow-sm">
+        <div className="flex bg-white border border-slate-200 rounded-md p-0.5 shadow-sm">
           {['ALL', 'CRITICAL', 'HIGH'].map(f => (
-            <button 
+            <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded transition-all ${filter === f ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-600'}`}
+              className={`px-4 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-md transition-all ${filter === f ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
             >
               {f}
             </button>
@@ -859,49 +946,47 @@ function AlertsTab({ alerts, onAcknowledge }) {
       </div>
 
       {sorted.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center bg-white rounded-3xl border border-slate-100 border-dashed p-12 text-center">
-          <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-2xl mb-4 grayscale">🛡️</div>
-          <p className="text-sm font-bold text-slate-800">Clear Skies</p>
-          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">No alerts matching your current filter</p>
+        <div className="flex-1 flex flex-col items-center justify-center bg-slate-50/50 rounded-md border border-slate-200 border-dashed p-12 text-center">
+          <div className="w-16 h-16 bg-white border border-slate-200 rounded-md flex items-center justify-center text-2xl mb-4 grayscale shadow-sm">🛡️</div>
+          <p className="text-xs font-black text-slate-800 uppercase tracking-widest">Clear Skies</p>
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight mt-1">No alerts matching your current filter</p>
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
           {sorted.map(a => (
-            <div key={a.id} className="group bg-white rounded-2xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all overflow-hidden flex">
-              <div className={`w-1.5 flex-shrink-0 ${
-                a.severity === 'CRITICAL' ? 'bg-red-700' :
-                a.severity === 'HIGH' ? 'bg-red-500' :
-                a.severity === 'MEDIUM' ? 'bg-orange-500' : 'bg-yellow-500'
-              }`}></div>
-              <div className="flex-1 p-5 flex items-center justify-between gap-6">
+            <div key={a.id} className="group bg-white rounded-md border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all overflow-hidden flex">
+              <div className={`w-1.5 flex-shrink-0 ${a.severity === 'CRITICAL' ? 'bg-red-700' :
+                  a.severity === 'HIGH' ? 'bg-rose-500' :
+                    a.severity === 'MEDIUM' ? 'bg-orange-500' : 'bg-amber-500'
+                }`}></div>
+              <div className="flex-1 p-4 flex items-center justify-between gap-6">
                 <div className="flex items-start gap-4">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shadow-sm ${
-                    a.severity === 'CRITICAL' ? 'bg-red-50' : 'bg-slate-50'
-                  }`}>
+                  <div className={`w-10 h-10 rounded-md flex items-center justify-center text-lg shadow-sm border border-slate-100 ${a.severity === 'CRITICAL' ? 'bg-red-50' : 'bg-slate-50'
+                    }`}>
                     {a.type === 'GARBAGE_DETECTED' ? '🗑️' : '⚠️'}
                   </div>
                   <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${
-                        a.severity === 'CRITICAL' ? 'bg-red-700 text-white' :
-                        a.severity === 'HIGH' ? 'bg-red-500 text-white' :
-                        a.severity === 'MEDIUM' ? 'bg-orange-500 text-white' : 'bg-yellow-400 text-slate-900'
-                      }`}>{a.severity}</span>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className={`text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-tighter ${a.severity === 'CRITICAL' ? 'bg-red-700 text-white' :
+                          a.severity === 'HIGH' ? 'bg-rose-500 text-white' :
+                            a.severity === 'MEDIUM' ? 'bg-orange-500 text-white' : 'bg-amber-400 text-slate-900'
+                        }`}>{a.severity}</span>
                       <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">{new Date(a.timestamp * 1000).toLocaleTimeString()}</span>
                     </div>
-                    <p className="text-sm font-bold text-slate-800 leading-snug">{a.message}</p>
+                    <p className="text-[13px] font-black text-slate-800 leading-snug uppercase tracking-tight">{a.message}</p>
                     {a.ticket_id && (
                       <div className="flex items-center gap-2 mt-2">
                         <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Ticket: {a.ticket_id}</span>
-                        <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-                        <span className="text-[10px] font-bold text-slate-400">Automatic AI Generation</span>
+                        <span className="w-1 h-1 bg-slate-300 rounded-sm"></span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Automatic AI Generation</span>
                       </div>
                     )}
                   </div>
                 </div>
                 {!a.acknowledged && (
-                  <button 
-                    className="flex-shrink-0 px-4 py-2 bg-slate-50 hover:bg-slate-900 hover:text-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm"
+                  <button
+                    onClick={() => onAcknowledge(a.id)}
+                    className="flex-shrink-0 px-5 py-2.5 bg-slate-900 text-white rounded-md text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-md hover:bg-blue-600"
                   >
                     Acknowledge
                   </button>
@@ -918,6 +1003,7 @@ function AlertsTab({ alerts, onAcknowledge }) {
 // ── Workers Tab ──
 function WorkersTab({ workers, setWorkers, tickets }) {
   const [showModal, setShowModal] = useState(false);
+
   const [editingWorker, setEditingWorker] = useState(null);
 
   const handleSave = async (workerData) => {
@@ -953,12 +1039,12 @@ function WorkersTab({ workers, setWorkers, tickets }) {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-4">
-          <h3 className="text-base font-black text-slate-800 tracking-tight">Personnel Directory</h3>
-          <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full uppercase">{workers.length} Total</span>
+          <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Personnel Directory</h3>
+          <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2.5 py-0.5 rounded-md uppercase tracking-tighter">{workers.length} Total</span>
         </div>
-        <button 
+        <button
           onClick={() => { setEditingWorker(null); setShowModal(true); }}
-          className="px-4 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-slate-100"
+          className="px-5 py-2.5 bg-slate-900 text-white rounded-md text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-md"
         >
           Add New Worker
         </button>
@@ -970,54 +1056,47 @@ function WorkersTab({ workers, setWorkers, tickets }) {
           const active = wTickets.filter(t => t.status !== 'RESOLVED');
           const resolved = wTickets.filter(t => t.status === 'RESOLVED');
           return (
-            <div key={w.id} className="group bg-white rounded-2xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all overflow-hidden flex flex-col aspect-square">
-              <div className="p-4 flex-1 flex flex-col">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-9 h-9 bg-blue-50 text-blue-700 rounded-xl flex items-center justify-center text-xs font-black shadow-sm flex-shrink-0">
+            <div key={w.id} className="group bg-white rounded-none border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all overflow-hidden flex flex-col">
+              <div className="p-4 flex-1">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-slate-50 text-slate-400 rounded-none flex items-center justify-center text-xs font-black border border-slate-100 group-hover:bg-slate-900 group-hover:text-white group-hover:border-slate-800 transition-all">
                       {w.name.charAt(0)}
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-[13px] font-black text-slate-900 leading-none truncate">{w.name}</p>
-                      <p className="text-[9px] font-mono text-slate-400 mt-0.5 uppercase tracking-tighter truncate">{w.id}</p>
+                    <div>
+                      <p className="text-[13px] font-black text-slate-900 leading-none uppercase tracking-tight">{w.name}</p>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <span className="text-[9px] font-black text-orange-600 uppercase tracking-tighter">{active.length} Active</span>
+                        <span className="w-1 h-1 bg-slate-200 rounded-none"></span>
+                        <span className="text-[9px] font-black text-green-600 uppercase tracking-tighter">{resolved.length} Done</span>
+                      </div>
                     </div>
                   </div>
-                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${w.status === 'available' ? 'bg-green-500' : 'bg-yellow-500'} shadow-sm`}></span>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-2 mb-3">
-                  <div className="bg-slate-50/50 p-2 rounded-xl border border-slate-100 text-center">
-                    <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest mb-0.5">Active</p>
-                    <p className="text-xs font-black text-orange-600">{active.length}</p>
-                  </div>
-                  <div className="bg-slate-50/50 p-2 rounded-xl border border-slate-100 text-center">
-                    <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest mb-0.5">Done</p>
-                    <p className="text-xs font-black text-green-600">{resolved.length}</p>
-                  </div>
+                  <span className={`w-1.5 h-1.5 rounded-none ${w.status === 'available' ? 'bg-green-500' : 'bg-yellow-500'} animate-pulse`}></span>
                 </div>
 
-                <div className="space-y-1 mt-auto pt-2 border-t border-slate-50">
-                  <div className="flex justify-between items-center text-[9px] font-bold">
-                    <span className="text-slate-400 uppercase tracking-widest">Zone</span>
-                    <span className="text-slate-800 truncate ml-2">{w.zone?.split('(')[0]}</span>
+                <div className="space-y-1 pt-3 border-t border-slate-50">
+                  <div className="flex justify-between items-center text-[9px]">
+                    <span className="text-slate-400 font-bold uppercase tracking-widest text-[8px]">Operation Zone</span>
+                    <span className="text-slate-700 font-black uppercase">{w.zone?.split('(')[0]}</span>
                   </div>
-                  <div className="flex justify-between items-center text-[9px] font-bold">
-                    <span className="text-slate-400 uppercase tracking-widest">Phone</span>
-                    <span className="text-slate-800">{w.phone}</span>
+                  <div className="flex justify-between items-center text-[9px]">
+                    <span className="text-slate-400 font-bold uppercase tracking-widest text-[8px]">Direct Phone</span>
+                    <span className="text-slate-700 font-black tracking-widest">{w.phone}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-slate-50 px-4 py-2.5 border-t border-slate-100 flex gap-2 flex-shrink-0">
-                <button 
+              <div className="bg-slate-50/50 px-4 py-3 border-t border-slate-100 flex gap-2">
+                <button
                   onClick={() => { setEditingWorker(w); setShowModal(true); }}
-                  className="flex-1 py-1.5 bg-white border border-slate-200 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-600 hover:text-blue-600 hover:border-blue-200 transition-all"
+                  className="flex-1 py-2 bg-white border border-slate-200 rounded-none text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-900 hover:border-slate-900 transition-all active:scale-95 shadow-sm"
                 >
                   Edit
                 </button>
-                <button 
+                <button
                   onClick={() => handleDelete(w.id)}
-                  className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-red-600 hover:border-red-200 transition-all"
+                  className="px-3 py-2 bg-white border border-slate-200 rounded-none text-[9px] font-black uppercase tracking-widest text-slate-300 hover:text-red-600 hover:border-red-200 transition-all active:scale-95 shadow-sm"
                 >
                   Delete
                 </button>
@@ -1028,15 +1107,16 @@ function WorkersTab({ workers, setWorkers, tickets }) {
       </div>
 
       {showModal && (
-        <WorkerModal 
-          worker={editingWorker} 
-          onClose={() => { setShowModal(false); setEditingWorker(null); }} 
-          onSave={handleSave} 
+        <WorkerModal
+          worker={editingWorker}
+          onClose={() => { setShowModal(false); setEditingWorker(null); }}
+          onSave={handleSave}
         />
       )}
     </div>
-  );
+  )
 }
+
 
 function WorkerModal({ worker, onClose, onSave }) {
   const [formData, setFormData] = useState(worker || {
@@ -1048,15 +1128,16 @@ function WorkerModal({ worker, onClose, onSave }) {
   });
 
   const ZONES = [
-    'Laxmi Nagar (Zone 1)', 'Dharampeth (Zone 2)', 'Hanuman Nagar (Zone 3)', 
-    'Dhantoli (Zone 4)', 'Nehru Nagar (Zone 5)', 'Gandhi Mahal (Zone 6)', 
-    'Satranjipura (Zone 7)', 'Lakadganj (Zone 8)', 'Ashi Nagar (Zone 9)', 
+    'Laxmi Nagar (Zone 1)', 'Dharampeth (Zone 2)', 'Hanuman Nagar (Zone 3)',
+    'Dhantoli (Zone 4)', 'Nehru Nagar (Zone 5)', 'Gandhi Mahal (Zone 6)',
+    'Satranjipura (Zone 7)', 'Lakadganj (Zone 8)', 'Ashi Nagar (Zone 9)',
     'Mangalwari (Zone 10)'
   ];
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl border border-slate-200 relative overflow-hidden" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-md p-8 max-w-md w-full shadow-2xl border border-slate-200 relative overflow-hidden" onClick={e => e.stopPropagation()}>
+
         <div className="absolute top-0 left-0 w-full h-2 bg-slate-900"></div>
         <div className="mb-8">
           <h3 className="text-2xl font-black text-slate-900 leading-none">{worker ? 'Edit Profile' : 'New Personnel'}</h3>
@@ -1066,63 +1147,65 @@ function WorkerModal({ worker, onClose, onSave }) {
         <div className="space-y-5">
           <div>
             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Full Name</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition-all"
               value={formData.name}
-              onChange={e => setFormData({...formData, name: e.target.value})}
+              onChange={e => setFormData({ ...formData, name: e.target.value })}
               placeholder="e.g. Rahul Sharma"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Worker ID</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 disabled={!!worker}
                 className={`w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition-all ${worker ? 'opacity-50' : ''}`}
                 value={formData.id}
-                onChange={e => setFormData({...formData, id: e.target.value})}
+                onChange={e => setFormData({ ...formData, id: e.target.value })}
                 placeholder="WKR-000"
               />
             </div>
             <div>
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Phone</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition-all"
                 value={formData.phone}
-                onChange={e => setFormData({...formData, phone: e.target.value})}
+                onChange={e => setFormData({ ...formData, phone: e.target.value })}
                 placeholder="98XXXXXXXX"
               />
             </div>
           </div>
           <div>
             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Operational Zone</label>
-            <select 
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition-all appearance-none"
+            <select
+              className="w-full bg-slate-50 border border-slate-200 rounded-md px-4 py-3 text-sm font-bold text-slate-800 focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition-all appearance-none"
               value={formData.zone}
-              onChange={e => setFormData({...formData, zone: e.target.value})}
+              onChange={e => setFormData({ ...formData, zone: e.target.value })}
             >
+
               {ZONES.map(z => <option key={z} value={z}>{z}</option>)}
             </select>
           </div>
         </div>
 
         <div className="mt-10 flex gap-4">
-          <button 
+          <button
             onClick={onClose}
-            className="flex-1 py-4 bg-slate-100 text-slate-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all"
+            className="flex-1 py-4 bg-slate-100 text-slate-400 rounded-md text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all"
           >
             Cancel
           </button>
-          <button 
+          <button
             onClick={() => onSave(formData)}
-            className="flex-1 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl shadow-slate-100"
+            className="flex-1 py-4 bg-slate-900 text-white rounded-md text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl shadow-slate-100"
           >
             Save Record
           </button>
         </div>
+
       </div>
     </div>
   );
@@ -1131,20 +1214,38 @@ function WorkerModal({ worker, onClose, onSave }) {
 // ── Shared Components ──
 function SeverityBadge({ severity }) {
   const colors = {
-    LOW: 'bg-yellow-500/20 text-yellow-400',
-    MEDIUM: 'bg-orange-500/20 text-orange-400',
-    HIGH: 'bg-red-500/20 text-red-400',
-    CRITICAL: 'bg-red-700/20 text-red-300',
+    LOW: 'bg-amber-50 text-amber-600 border-amber-200',
+    MEDIUM: 'bg-orange-50 text-orange-600 border-orange-200',
+    HIGH: 'bg-rose-50 text-rose-600 border-rose-200',
+    CRITICAL: 'bg-red-50 text-red-700 border-red-300 animate-pulse',
   };
-  return <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${colors[severity] || 'bg-gray-600 text-gray-300'}`}>{severity}</span>;
+  return (
+    <span className={`
+      text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md border 
+      ${colors[severity] || 'bg-slate-50 text-slate-400 border-slate-200'}
+    `}>
+      {severity}
+    </span>
+  );
 }
+
+
 
 function StatusBadge({ status }) {
   const colors = {
-    OPEN: 'bg-blue-500/20 text-blue-400',
-    ASSIGNED: 'bg-purple-500/20 text-purple-400',
-    IN_PROGRESS: 'bg-yellow-500/20 text-yellow-400',
-    RESOLVED: 'bg-green-500/20 text-green-400',
+    OPEN: 'bg-blue-50 text-blue-600 border-blue-200',
+    ASSIGNED: 'bg-violet-50 text-violet-600 border-violet-200',
+    IN_PROGRESS: 'bg-amber-50 text-amber-600 border-amber-200',
+    RESOLVED: 'bg-emerald-50 text-emerald-600 border-emerald-200',
   };
-  return <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${colors[status] || 'bg-gray-600 text-gray-300'}`}>{status}</span>;
+  return (
+    <span className={`
+      text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md border 
+      ${colors[status] || 'bg-slate-50 text-slate-400 border-slate-200'}
+    `}>
+      {status?.replace('_', ' ')}
+    </span>
+  );
 }
+
+

@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -222,6 +222,7 @@ export default function NagpurMap({
   trucks = [],
   staticHotspots = [],
   selectedStaticHotspot = null,
+  routePath = null,
 }) {
   const activeTickets = tickets.filter(t => t.status !== 'RESOLVED');
 
@@ -253,6 +254,10 @@ export default function NagpurMap({
         attribution='&copy; OpenStreetMap'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+
+      {routePath && (
+        <Polyline positions={routePath} pathOptions={{ color: '#3b82f6', weight: 4, dashArray: '10 10' }} />
+      )}
 
       {/* Garbage Hotspot Tickets */}
       {(viewType === 'hotspots' || !viewType) && activeTickets.map((t, i) => (

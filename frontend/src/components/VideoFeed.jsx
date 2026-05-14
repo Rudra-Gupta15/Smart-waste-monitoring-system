@@ -39,12 +39,13 @@ export default function VideoFeed() {
   };
 
   return (
-    <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-slate-200">
+    <div className="bg-white rounded-md overflow-hidden shadow-sm border border-slate-200 h-full flex flex-col">
+
       <div className="px-4 py-2.5 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
         <div className="flex items-center gap-3">
           <h3 className="text-slate-800 font-semibold text-sm">AI Camera Feed - Waste Detection</h3>
           {status && (
-            <span className="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded text-slate-500 font-mono">
+            <span className="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded-md text-slate-500 font-mono">
               src: {status.source}
             </span>
           )}
@@ -58,9 +59,10 @@ export default function VideoFeed() {
             <span className="text-lg">⚙</span>
           </button>
           <span className="flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full ${error ? 'bg-red-500' : 'bg-green-500 alert-pulse'}`}></span>
+            <span className={`w-2 h-2 rounded-sm ${error ? 'bg-red-500' : 'bg-green-500 alert-pulse'}`}></span>
             <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">{error ? 'Offline' : 'Live'}</span>
           </span>
+
         </div>
       </div>
 
@@ -72,13 +74,14 @@ export default function VideoFeed() {
               placeholder="Source (0, 1, or URL)"
               value={newSource}
               onChange={(e) => setNewSource(e.target.value)}
-              className="flex-1 bg-white border border-slate-200 rounded px-3 py-1.5 text-sm text-slate-800 focus:outline-none focus:border-green-500 shadow-sm"
+              className="flex-1 bg-white border border-slate-200 rounded-none px-3 py-1.5 text-sm text-slate-800 focus:outline-none focus:border-green-500 shadow-sm"
             />
             <button 
               type="submit"
               disabled={loading}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded text-sm font-medium transition-colors disabled:opacity-50"
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
             >
+
               {loading ? 'Updating...' : 'Switch'}
             </button>
           </form>
@@ -88,26 +91,29 @@ export default function VideoFeed() {
         </div>
       )}
 
-      <div className="relative bg-black" style={{ minHeight: '380px' }}>
+      <div className="relative bg-black flex-1 overflow-hidden">
+
         {!error ? (
           <img
             key={feedKey}
             src={`${getVideoFeedUrl()}?t=${feedKey}`}
             alt="Live waste detection feed"
-            className="w-full h-auto"
+            className="w-full h-full object-contain bg-black"
+
             onError={() => setError(true)}
           />
         ) : (
           <div className="flex flex-col items-center justify-center h-96 text-gray-500">
-            <div className="w-16 h-16 mb-4 border-2 border-gray-600 rounded-full flex items-center justify-center text-2xl">
+            <div className="w-16 h-16 mb-4 border-2 border-gray-600 rounded-none flex items-center justify-center text-2xl">
               ◉
             </div>
             <p className="text-sm">Camera feed unavailable</p>
             <p className="text-xs mt-1 text-gray-600">Source: {status?.source || 'Unknown'}</p>
             <button
               onClick={() => { setError(false); setFeedKey(prev => prev + 1); }}
-              className="mt-4 px-6 py-2 bg-blue-600 text-white text-xs font-bold uppercase tracking-widest rounded-full hover:bg-blue-700 transition-all active:scale-95 shadow-lg"
+              className="mt-4 px-6 py-2 bg-blue-600 text-white text-xs font-bold uppercase tracking-widest rounded-md hover:bg-blue-700 transition-all active:scale-95 shadow-lg"
             >
+
               Retry Connection
             </button>
           </div>
@@ -116,3 +122,4 @@ export default function VideoFeed() {
     </div>
   );
 }
+

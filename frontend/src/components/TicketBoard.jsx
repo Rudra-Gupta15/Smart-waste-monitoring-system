@@ -12,6 +12,11 @@ const severityColors = {
   LOW: 'bg-yellow-400', MEDIUM: 'bg-orange-400', HIGH: 'bg-red-500', CRITICAL: 'bg-red-700',
 };
 
+const formatTime = (ts) => {
+  if (!ts) return '';
+  return new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+};
+
 export default function TicketBoard({ tickets, setTickets, readOnly = false }) {
   const [selected, setSelected] = useState(null);
   const [timers, setTimers] = useState({}); // ticketId -> startTime
@@ -24,7 +29,6 @@ export default function TicketBoard({ tickets, setTickets, readOnly = false }) {
         const next = { ...prev };
         let changed = false;
         Object.keys(next).forEach(id => {
-          // Keep timers for 1 hour then cleanup
           if (now - next[id] > 3600000) {
             delete next[id];
             changed = true;
@@ -41,9 +45,8 @@ export default function TicketBoard({ tickets, setTickets, readOnly = false }) {
       const res = await acceptTicket(ticketId, workerId);
       if (res.status === 'accepted') {
         setTimers(prev => ({ ...prev, [ticketId]: Date.now() }));
-        // Optimistic update
         setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: 'IN_PROGRESS', accepted_at: Date.now()/1000 } : t));
-        toast.success(`Ticket ${ticketId} accepted. Processing...`);
+        toast.success(`Ticket accepted. Processing...`);
       }
     } catch (err) {
       toast.error("Failed to accept ticket");
@@ -58,29 +61,28 @@ export default function TicketBoard({ tickets, setTickets, readOnly = false }) {
         delete next[ticketId];
         return next;
       });
-      // Optimistic update
       setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: 'RESOLVED', resolved_at: Date.now()/1000 } : t));
-      toast.success(`Ticket ${ticketId} resolved and completed!`);
+      toast.success(`Ticket resolved!`);
     } catch (err) {
       toast.error("Failed to resolve ticket");
     }
   };
 
   return (
-    <div className="flex flex-col h-full space-y-6 overflow-hidden">
+    <div className="flex flex-col h-full space-y-4 overflow-hidden">
       <div className="flex items-center justify-between flex-shrink-0">
-        <h3 className="text-lg font-bold text-slate-800 tracking-tight">AI Dispatch Board</h3>
+        <h3 className="text-base font-black text-slate-800 tracking-tight uppercase">AI Dispatch Board</h3>
         <div className="flex gap-2">
           {STATUS_COLUMNS.map(col => (
-            <div key={col.id} className="flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 rounded-full shadow-sm">
-              <span className={`w-2 h-2 rounded-full ${col.color}`}></span>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{col.label}</span>
+            <div key={col.id} className="flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 rounded-md shadow-sm">
+              <span className={`w-2 h-2 rounded-sm ${col.color}`}></span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{col.label}</span>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0 h-full">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 min-h-0 h-full">
         {STATUS_COLUMNS.map(col => {
           const colTickets = tickets.filter(t => {
             if (col.id === 'OPEN') return t.status === 'OPEN' || t.status === 'ASSIGNED';
@@ -88,15 +90,15 @@ export default function TicketBoard({ tickets, setTickets, readOnly = false }) {
           }).sort((a, b) => a.priority - b.priority);
 
           return (
-            <div key={col.id} className="flex flex-col h-full bg-slate-100/50 rounded-2xl border border-slate-200/60 overflow-hidden">
-              <div className="flex items-center justify-between p-4 bg-white/50 backdrop-blur-sm border-b border-slate-200/60 flex-shrink-0">
-                <h4 className={`text-sm font-black uppercase tracking-[0.2em] ${col.text}`}>{col.label}</h4>
-                <span className="bg-white border border-slate-200 px-2.5 py-0.5 rounded-full text-xs font-black text-slate-500 shadow-sm">
+            <div key={col.id} className="flex flex-col h-full bg-slate-100/50 rounded-md border border-slate-200/60 overflow-hidden">
+              <div className="flex items-center justify-between p-3 bg-white/50 backdrop-blur-sm border-b border-slate-200/60 flex-shrink-0">
+                <h4 className={`text-[10px] font-black uppercase tracking-[0.2em] ${col.text}`}>{col.label}</h4>
+                <span className="bg-white border border-slate-200 px-2 py-0.5 rounded-md text-[10px] font-black text-slate-500 shadow-sm">
                   {colTickets.length}
                 </span>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth custom-scrollbar">
+              <div className="flex-1 overflow-y-auto p-3 space-y-3 scroll-smooth custom-scrollbar">
                 {colTickets.map(t => (
                   <TicketCard 
                     key={t.id} 
@@ -110,8 +112,8 @@ export default function TicketBoard({ tickets, setTickets, readOnly = false }) {
                 ))}
                 {colTickets.length === 0 && (
                   <div className="h-40 flex flex-col items-center justify-center text-slate-400 opacity-40">
-                    <span className="text-3xl mb-2">▤</span>
-                    <p className="text-[10px] font-bold uppercase tracking-widest">Queue Clear</p>
+                    <span className="text-2xl mb-1">▤</span>
+                    <p className="text-[9px] font-black uppercase tracking-widest">Queue Clear</p>
                   </div>
                 )}
               </div>
@@ -120,58 +122,58 @@ export default function TicketBoard({ tickets, setTickets, readOnly = false }) {
         })}
       </div>
 
-      {/* Ticket Detail Modal (Existing logic preserved, styled improved) */}
+      {/* Ticket Detail Modal */}
       {selected && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setSelected(null)}>
-          <div className="bg-white rounded-3xl p-8 max-w-xl w-full shadow-2xl border border-slate-200 text-slate-800 overflow-hidden relative" onClick={e => e.stopPropagation()}>
-            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-green-500"></div>
+          <div className="bg-white rounded-md p-6 max-w-xl w-full shadow-2xl border border-slate-200 text-slate-800 overflow-hidden relative" onClick={e => e.stopPropagation()}>
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 via-purple-500 to-green-500"></div>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-2xl font-black text-slate-900 leading-tight">{selected.id}</h3>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Maintenance Record</p>
+                <h3 className="text-xl font-black text-slate-900 tracking-tight leading-none">{selected.id}</h3>
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1.5">Maintenance Record</p>
               </div>
-              <button onClick={() => setSelected(null)} className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-all text-xl">&times;</button>
+              <button onClick={() => setSelected(null)} className="w-8 h-8 flex items-center justify-center rounded-md bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-all text-xl">&times;</button>
             </div>
             
-            <div className="grid grid-cols-2 gap-8 mb-8">
+            <div className="grid grid-cols-2 gap-6 mb-6">
               <div className="space-y-4">
                 <div>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1.5">Status & Priority</p>
+                  <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1.5">Status & Priority</p>
                   <div className="flex gap-2">
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold text-white ${severityColors[selected.severity]}`}>{selected.severity}</span>
-                    <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 uppercase">{selected.status}</span>
+                    <span className={`px-2 py-0.5 rounded-md text-[9px] font-black text-white uppercase ${severityColors[selected.severity]}`}>{selected.severity}</span>
+                    <span className="px-2 py-0.5 rounded-md text-[9px] font-black bg-slate-100 text-slate-600 border border-slate-200 uppercase">{selected.status}</span>
                   </div>
                 </div>
                 <div>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1.5">Location</p>
-                  <p className="text-sm font-bold text-slate-800 leading-snug">{selected.location.address}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{selected.location.ward} • {selected.location.zone}</p>
+                  <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1.5">Location</p>
+                  <p className="text-sm font-black text-slate-800 leading-snug">{selected.location.address}</p>
+                  <p className="text-[10px] text-slate-500 font-bold mt-0.5">{selected.location.ward} • {selected.location.zone}</p>
                 </div>
               </div>
               
               <div className="space-y-4">
                 <div>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1.5">Assigned Agent</p>
+                  <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1.5">Assigned Agent</p>
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold shadow-lg shadow-blue-200">
+                    <div className="w-8 h-8 bg-slate-900 rounded-md flex items-center justify-center text-white text-xs font-black">
                       {selected.assigned_worker?.name?.charAt(0)}
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-slate-800">{selected.assigned_worker?.name}</p>
-                      <p className="text-[10px] text-slate-500">{selected.assigned_worker?.phone}</p>
+                      <p className="text-xs font-black text-slate-800 leading-none">{selected.assigned_worker?.name}</p>
+                      <p className="text-[9px] text-slate-500 font-bold mt-1 uppercase">{selected.assigned_worker?.phone}</p>
                     </div>
                   </div>
                 </div>
                 <div>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1.5">AI Insights</p>
-                  <p className="text-xs font-medium text-slate-700">{selected.object_count} items • {selected.categories?.join(', ')}</p>
+                  <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1.5">AI Insights</p>
+                  <p className="text-[11px] font-bold text-slate-700">{selected.object_count} items • {selected.categories?.join(', ')}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-3">Audit Logs</p>
-              <div className="space-y-2.5">
+            <div className="bg-slate-50 rounded-md p-4 border border-slate-100">
+              <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-3">Audit Logs</p>
+              <div className="space-y-2">
                 <LogEntry label="Detected" time={selected.created_at} active />
                 {selected.accepted_at && <LogEntry label="In Progress" time={selected.accepted_at} active />}
                 {selected.resolved_at && <LogEntry label="Resolved" time={selected.resolved_at} active />}
@@ -209,47 +211,44 @@ function TicketCard({ ticket, startTime, onAccept, onComplete, onSelect, readOnl
   }, [startTime, ticket.status]);
 
   return (
-    <div 
-      className="group bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden flex flex-col"
-    >
-      <div className="p-4 flex-1 cursor-pointer" onClick={onSelect}>
-        <div className="flex justify-between items-start mb-3">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">{ticket.id}</span>
-          <span className={`w-2.5 h-2.5 rounded-full ${severityColors[ticket.severity]} shadow-sm`}></span>
+    <div className="group bg-white rounded-md border border-slate-200 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden flex flex-col">
+      <div className="p-3 flex-1 cursor-pointer" onClick={onSelect}>
+        <div className="flex justify-between items-start mb-2">
+          <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">{ticket.id}</span>
+          <span className={`w-2 h-2 rounded-sm ${severityColors[ticket.severity]} shadow-sm`}></span>
         </div>
         
-        <h5 className="text-sm font-bold text-slate-800 leading-tight mb-1 group-hover:text-blue-600 transition-colors">{ticket.location.address}</h5>
-        <p className="text-[10px] text-slate-400 font-medium">{ticket.location.zone} • {ticket.object_count} obj</p>
+        <h5 className="text-[13px] font-black text-slate-800 leading-tight mb-1 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{ticket.location.address}</h5>
+        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">{ticket.location.zone} • {ticket.object_count} items</p>
         
-        <div className="mt-4 flex items-center gap-2">
-          <div className="w-6 h-6 bg-slate-100 rounded-lg flex items-center justify-center text-[10px] font-bold text-slate-500">
+        <div className="mt-3 flex items-center gap-2">
+          <div className="w-5 h-5 bg-slate-50 border border-slate-200 rounded-md flex items-center justify-center text-[9px] font-black text-slate-600">
             {ticket.assigned_worker?.name?.charAt(0)}
           </div>
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">{ticket.assigned_worker?.name}</span>
+          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{ticket.assigned_worker?.name}</span>
         </div>
       </div>
 
-      {/* Dynamic Action Zone - Only show if NOT read-only */}
       {!readOnly && (
-        <div className="bg-slate-50 border-t border-slate-100 p-3">
+        <div className="bg-slate-50 border-t border-slate-100 p-2.5">
           {(ticket.status === 'OPEN' || ticket.status === 'ASSIGNED') && (
             <button 
               onClick={(e) => { e.stopPropagation(); onAccept(); }}
-              className="w-full bg-slate-900 text-white text-xs font-black py-2.5 rounded-xl hover:bg-blue-600 transition-all active:scale-95 shadow-sm"
+              className="w-full bg-slate-900 text-white text-[10px] font-black py-2 rounded-md hover:bg-blue-600 transition-all active:scale-95 shadow-sm uppercase tracking-widest"
             >
-              ACCEPT TASK
+              Accept Task
             </button>
           )}
 
           {ticket.status === 'IN_PROGRESS' && (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {!canComplete ? (
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[8px] font-black text-slate-400 uppercase tracking-widest">
                     <span>Processing</span>
                     <span>{Math.round(progress)}%</span>
                   </div>
-                  <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+                  <div className="h-1 w-full bg-slate-200 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-orange-500 transition-all duration-100" 
                       style={{ width: `${progress}%` }}
@@ -259,25 +258,19 @@ function TicketCard({ ticket, startTime, onAccept, onComplete, onSelect, readOnl
               ) : (
                 <button 
                   onClick={(e) => { e.stopPropagation(); onComplete(); }}
-                  className="w-full bg-green-600 text-white text-xs font-black py-2.5 rounded-xl hover:bg-green-700 transition-all animate-bounce shadow-md"
+                  className="w-full bg-green-600 text-white text-[10px] font-black py-2 rounded-md hover:bg-green-700 transition-all shadow-md uppercase tracking-widest"
                 >
-                  COMPLETE WORK
+                  Complete
                 </button>
               )}
             </div>
           )}
 
           {ticket.status === 'RESOLVED' && (
-            <div className="flex items-center justify-center gap-2 py-1 text-green-600">
-              <span className="text-xs font-black uppercase tracking-widest italic">✓ Resolved</span>
+            <div className="flex items-center justify-center py-1 text-green-600">
+              <span className="text-[10px] font-black uppercase tracking-widest italic">✓ Resolved</span>
             </div>
           )}
-        </div>
-      )}
-
-      {readOnly && ticket.status === 'RESOLVED' && (
-        <div className="bg-green-50 border-t border-green-100 p-3 flex items-center justify-center gap-2 text-green-600">
-          <span className="text-xs font-black uppercase tracking-widest italic">✓ Resolved</span>
         </div>
       )}
     </div>
@@ -287,11 +280,12 @@ function TicketCard({ ticket, startTime, onAccept, onComplete, onSelect, readOnl
 function LogEntry({ label, time, active }) {
   return (
     <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <div className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'bg-slate-300'}`}></div>
-        <span className={`text-[11px] font-bold uppercase tracking-wider ${active ? 'text-slate-700' : 'text-slate-400'}`}>{label}</span>
+      <div className="flex items-center gap-2">
+        <div className={`w-1 h-1 rounded-sm ${active ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'bg-slate-300'}`}></div>
+        <span className={`text-[10px] font-black uppercase tracking-widest ${active ? 'text-slate-700' : 'text-slate-400'}`}>{label}</span>
       </div>
-      <span className="text-[10px] font-mono text-slate-400">{new Date(time * 1000).toLocaleTimeString()}</span>
+      <span className="text-[9px] font-mono font-black text-slate-400">{formatTime(time)}</span>
     </div>
   );
 }
+
