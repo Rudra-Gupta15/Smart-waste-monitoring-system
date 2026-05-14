@@ -23,6 +23,39 @@ const TABS = [
   { id: 'workers', label: 'Workers', icon: '◇' },
 ];
 
+const HOTSPOTS_LIST = [
+  { "id": 1, "area": "Bhandewadi Dump Yard", "zone": "Lakadganj", "risk": "Extreme", "pos": [21.1975, 79.0779] },
+  { "id": 2, "area": "Wadi Flyover Service Road", "zone": "Dharampeth", "risk": "High", "pos": [21.1992, 79.0936] },
+  { "id": 3, "area": "Sitabuldi Shani Mandir Road", "zone": "Dharampeth", "risk": "High", "pos": [21.1103, 79.0396] },
+  { "id": 4, "area": "Ganesh Nagar", "zone": "Hanuman Nagar", "risk": "Medium", "pos": [21.0951, 79.0499] },
+  { "id": 5, "area": "Sakkardara Market Area", "zone": "Hanuman Nagar", "risk": "High", "pos": [21.1302, 79.0331] },
+  { "id": 6, "area": "Taj Bagh Road", "zone": "Nehru Nagar", "risk": "High", "pos": [21.0949, 79.0401] },
+  { "id": 7, "area": "Gangabai Ghat Area", "zone": "Lakadganj", "risk": "High", "pos": [21.1671, 79.1073] },
+  { "id": 8, "area": "Gokulpeth Nawab Kua Area", "zone": "Dharampeth", "risk": "Medium", "pos": [21.1333, 79.0839] },
+  { "id": 9, "area": "Rahul Nagar", "zone": "Ashi Nagar", "risk": "Medium", "pos": [21.1272, 79.0696] },
+  { "id": 10, "area": "Urvela Colony", "zone": "Ashi Nagar", "risk": "Medium", "pos": [21.1102, 79.0863] },
+  { "id": 11, "area": "Yashodhara Nagar", "zone": "Satranjipura", "risk": "High", "pos": [21.1365, 79.0792] },
+  { "id": 12, "area": "Mominpura Back Lanes", "zone": "Gandhibagh", "risk": "High", "pos": [21.1676, 79.1368] },
+  { "id": 13, "area": "Cotton Market Area", "zone": "Gandhibagh", "risk": "High", "pos": [21.0943, 79.0595] },
+  { "id": 14, "area": "Itwari Railway Surroundings", "zone": "Gandhibagh", "risk": "High", "pos": [21.1633, 79.0515] },
+  { "id": 15, "area": "Kalamna Market Yard", "zone": "Lakadganj", "risk": "High", "pos": [21.1629, 79.1296] },
+  { "id": 16, "area": "Automotive Square", "zone": "Mangalwari", "risk": "Medium", "pos": [21.1240, 79.1036] },
+  { "id": 17, "area": "Indora Chowk", "zone": "Mangalwari", "risk": "Medium", "pos": [21.1302, 79.0513] },
+  { "id": 18, "area": "Chaoni Chowk", "zone": "Mangalwari", "risk": "Medium", "pos": [21.1733, 79.1264] },
+  { "id": 19, "area": "Sonegaon Lake Side", "zone": "Dhantoli", "risk": "Medium", "pos": [21.1577, 79.0308] },
+  { "id": 20, "area": "Pratap Nagar Open Plot Area", "zone": "Laxmi Nagar", "risk": "Medium", "pos": [21.1045, 79.0460] },
+  { "id": 21, "area": "Ambazari Back Road", "zone": "Dharampeth", "risk": "Medium", "pos": [21.1777, 79.0503] },
+  { "id": 22, "area": "Dharampeth Commercial Lanes", "zone": "Dharampeth", "risk": "Medium", "pos": [21.1175, 79.0714] },
+  { "id": 23, "area": "Medical Square Surroundings", "zone": "Hanuman Nagar", "risk": "Medium", "pos": [21.1294, 79.1426] },
+  { "id": 24, "area": "Ajni Railway Yard Area", "zone": "Dhantoli", "risk": "High", "pos": [21.1230, 79.1163] },
+  { "id": 25, "area": "Manewada Road Corners", "zone": "Hanuman Nagar", "risk": "Medium", "pos": [21.1220, 79.0691] },
+  { "id": 26, "area": "Nandanvan Main Road", "zone": "Hanuman Nagar", "risk": "Medium", "pos": [21.1435, 79.0606] },
+  { "id": 27, "area": "Jaripatka Market Area", "zone": "Mangalwari", "risk": "Medium", "pos": [21.1902, 79.1260] },
+  { "id": 28, "area": "Kamptee Road Slum Pockets", "zone": "Mangalwari", "risk": "High", "pos": [21.1842, 79.0702] },
+  { "id": 29, "area": "Wardhaman Nagar Empty Plots", "zone": "Lakadganj", "risk": "Medium", "pos": [21.1998, 79.0811] },
+  { "id": 30, "area": "Swawlambi Nagar Ground Area", "zone": "Laxmi Nagar", "risk": "Medium", "pos": [21.1123, 79.0903] }
+];
+
 export default function AdminPanel() {
   const [tab, setTab] = useState('overview');
   const [stats, setStats] = useState(null);
@@ -386,6 +419,7 @@ function MapTab({ tickets, collectionPoints, workers, liveDetections, userLocati
   const [viewType, setViewType] = useState('stations'); // 'stations' or 'hotspots'
   const [selectedStation, setSelectedStation] = useState(null);
   const [trucks, setTrucks] = useState([]);
+  const [selectedHotspot, setSelectedHotspot] = useState(null);
   
   // Station coordinates (must match NagpurMap STATIONS)
   const stationCoords = {
@@ -486,36 +520,144 @@ function MapTab({ tickets, collectionPoints, workers, liveDetections, userLocati
           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-purple-500"></span> Heavy Tipper</span>
         </div>
         
-        <div className="flex-1 bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-200 relative">
-          <NagpurMap
-            tickets={tickets}
-            collectionPoints={collectionPoints}
-            workers={workers}
-            liveDetections={liveDetections}
-            showWorkers={true}
-            height="100%"
-            viewType={viewType}
-            center={userLocation}
-            onLocationSelect={onLocationSelect}
-            selectedStation={selectedStation}
-            trucks={visibleTrucks}
-          />
-          {/* Active zone overlay badge */}
-          {selectedStation && (
-            <div className="absolute top-3 right-3 z-[1000] bg-white/90 backdrop-blur-sm border border-emerald-200 rounded-xl px-4 py-2 shadow-lg flex items-center gap-2">
-              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">
-                Zone {selectedStation} — {zones.find(z => z.id === selectedStation)?.name}
-              </span>
-              <span className="text-[9px] text-slate-400 ml-1">
-                {visibleTrucks.length} trucks active
-              </span>
-              <button
-                onClick={() => setSelectedStation(null)}
-                className="text-slate-400 hover:text-red-500 transition-colors ml-1 text-sm"
-              >×</button>
+        <div className="flex-1 bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-200 relative flex">
+          <div className="flex-1 relative">
+            <NagpurMap
+              tickets={tickets}
+              collectionPoints={collectionPoints}
+              workers={workers}
+              liveDetections={liveDetections}
+              showWorkers={true}
+              height="100%"
+              viewType={viewType}
+              center={userLocation}
+              onLocationSelect={onLocationSelect}
+              selectedStation={selectedStation}
+              trucks={visibleTrucks}
+              staticHotspots={HOTSPOTS_LIST}
+              selectedStaticHotspot={selectedHotspot}
+            />
+            {/* Active zone overlay badge */}
+            {selectedStation && (
+              <div className="absolute top-3 right-3 z-[1000] bg-white/90 backdrop-blur-sm border border-emerald-200 rounded-xl px-4 py-2 shadow-lg flex items-center gap-2">
+                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">
+                  Zone {selectedStation} — {zones.find(z => z.id === selectedStation)?.name}
+                </span>
+                <span className="text-[9px] text-slate-400 ml-1">
+                  {visibleTrucks.length} trucks active
+                </span>
+                <button
+                  onClick={() => setSelectedStation(null)}
+                  className="text-slate-400 hover:text-red-500 transition-colors ml-1 text-sm"
+                >×</button>
+              </div>
+            )}
+            
+            {/* Google Maps Style Floating Left Panel */}
+            <div className={`absolute top-0 left-0 h-full w-80 bg-white z-[1000] shadow-2xl transition-transform duration-300 ease-in-out flex flex-col border-r border-slate-200 ${selectedStation ? 'translate-x-0' : '-translate-x-full'}`}>
+              {selectedStation && (
+                <>
+                  <div className="relative">
+                    <img 
+                      src="https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&q=80" 
+                      alt="Station Facility" 
+                      className="w-full h-48 object-cover"
+                    />
+                    <button 
+                      onClick={() => handleStationClick(selectedStation)}
+                      className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur rounded-full flex items-center justify-center text-slate-700 shadow-sm z-10 hover:bg-white transition-colors"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    </button>
+                  </div>
+                  
+                  <div className="flex-1 overflow-y-auto custom-scrollbar pb-6">
+                    <div className="p-5 border-b border-slate-100">
+                      <h2 className="text-2xl font-bold text-slate-800 mb-1">{zones.find(z => z.id === selectedStation)?.name} Station</h2>
+                      <p className="text-sm text-slate-500 mb-3">Solid Waste Management Facility</p>
+                      <div className="flex items-center text-sm text-slate-600">
+                        <span className="font-semibold mr-1">4.8</span>
+                        <span className="text-amber-500 tracking-widest mr-2 text-base">★★★★★</span>
+                        <span className="text-slate-400">(124)</span>
+                        <span className="mx-2 text-slate-300">•</span>
+                        <span className="text-emerald-600 font-bold">Active</span>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-around p-4 border-b border-slate-100 bg-slate-50/50">
+                      <div className="flex flex-col items-center gap-1.5 cursor-pointer group">
+                        <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white transition-colors shadow-sm">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                        </div>
+                        <span className="text-[11px] text-emerald-700 font-bold tracking-wide">Directions</span>
+                      </div>
+                      <div className="flex flex-col items-center gap-1.5 cursor-pointer group">
+                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-slate-200 transition-colors border border-slate-200">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+                        </div>
+                        <span className="text-[11px] text-slate-600 font-medium">Save</span>
+                      </div>
+                      <div className="flex flex-col items-center gap-1.5 cursor-pointer group">
+                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-slate-200 transition-colors border border-slate-200">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                        </div>
+                        <span className="text-[11px] text-slate-600 font-medium">Nearby</span>
+                      </div>
+                      <div className="flex flex-col items-center gap-1.5 cursor-pointer group">
+                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-slate-200 transition-colors border border-slate-200">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>
+                        </div>
+                        <span className="text-[11px] text-slate-600 font-medium">Share</span>
+                      </div>
+                    </div>
+
+                    <div className="p-5 space-y-5">
+                      <div className="flex items-start gap-4">
+                        <div className="text-emerald-600 mt-0.5">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                        </div>
+                        <div>
+                          <p className="text-sm text-slate-800 font-medium">Zone {selectedStation}, Nagpur, Maharashtra 440022</p>
+                          <p className="text-[13px] text-slate-500 mt-1">Capacity: {zones.find(z => z.id === selectedStation)?.load}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start gap-4">
+                        <div className="text-emerald-600 mt-0.5">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        </div>
+                        <div>
+                          <span className="text-sm font-bold text-emerald-600">Open 24 hours</span>
+                          <span className="text-sm text-slate-500"> • Smart City Operations</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-4">
+                        <div className="text-emerald-600 mt-0.5">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        </div>
+                        <div>
+                          <p className="text-sm text-slate-800 font-medium">Solar Hoppers Equipped</p>
+                          <a href="#" className="text-[13px] text-sky-600 hover:underline cursor-pointer">nmc.gov.in/solid-waste</a>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start gap-4">
+                        <div className="text-emerald-600 mt-0.5">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>
+                        </div>
+                        <div>
+                          <p className="text-sm text-slate-800 font-medium">Contractor</p>
+                          <p className="text-[13px] text-slate-500">{zones.find(z => z.id === selectedStation)?.contractor}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
         {/* Truck Footer */}
@@ -550,56 +692,94 @@ function MapTab({ tickets, collectionPoints, workers, liveDetections, userLocati
         {/* Info Card */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-1 flex flex-col">
           <div className="p-4 border-b border-slate-100">
-            <h3 className="font-bold text-slate-800">Station Directory</h3>
+            <h3 className="font-bold text-slate-800">{viewType === 'stations' ? 'Station Directory' : 'Identified Hotspots'}</h3>
             <p className="text-[10px] text-slate-400 uppercase font-bold mt-1">
-              {selectedStation ? `Zone ${selectedStation} Selected — Click to deselect` : 'Click a zone to see its coverage area'}
+              {viewType === 'stations' ? 'Click a zone to see its coverage area' : 'Frequent unauthorized dumping zones'}
             </p>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {zones.map(z => {
-              const isSelected = selectedStation === z.id;
-              const zoneTruckCount = trucks.filter(t => t.zone === z.id).length;
-              return (
-                <div 
-                  key={z.id} 
-                  onClick={() => handleStationClick(z.id)}
-                  className={`p-3 rounded-lg border transition-all cursor-pointer ${
-                    isSelected 
-                      ? 'bg-emerald-50 border-emerald-400 ring-2 ring-emerald-500/20 shadow-md' 
-                      : z.highlight 
-                        ? 'bg-slate-50 border-slate-900 ring-1 ring-slate-900/5 hover:shadow-md' 
-                        : 'bg-white border-slate-100 hover:border-slate-300 hover:shadow-sm'
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-1">
-                    <h4 className={`text-xs font-bold ${isSelected ? 'text-emerald-800' : 'text-slate-800'}`}>
-                      {z.name} <span className="text-[9px] text-slate-400 ml-1">Zone {z.id}</span>
-                    </h4>
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${z.contractor === 'AG Enviro' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
-                      {z.contractor}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-[10px]">
-                    <span className="text-slate-500">{z.features}</span>
-                    <span className="font-bold text-slate-700">{z.load}</span>
-                  </div>
-                  {isSelected && (
-                    <div className="mt-2 pt-2 border-t border-emerald-200 flex items-center justify-between">
-                      <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                        Coverage Active
-                      </span>
-                      <span className="text-[9px] text-slate-500 font-bold">
-                        {zoneTruckCount} truck{zoneTruckCount !== 1 ? 's' : ''} deployed
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+            {viewType === 'stations' ? (
+              zones.map(z => {
+                const isSelected = selectedStation === z.id;
+                const zoneTruckCount = trucks.filter(t => t.zone === z.id).length;
+                return (
+                  <div 
+                    key={z.id} 
+                    onClick={() => handleStationClick(z.id)}
+                    className={`p-3 rounded-lg border transition-all cursor-pointer ${
+                      isSelected 
+                        ? 'bg-emerald-50 border-emerald-400 ring-2 ring-emerald-500/20 shadow-md' 
+                        : z.highlight 
+                          ? 'bg-slate-50 border-slate-900 ring-1 ring-slate-900/5 hover:shadow-md' 
+                          : 'bg-white border-slate-100 hover:border-slate-300 hover:shadow-sm'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-1">
+                      <h4 className={`text-xs font-bold ${isSelected ? 'text-emerald-800' : 'text-slate-800'}`}>
+                        {z.name} <span className="text-[9px] text-slate-400 ml-1">Zone {z.id}</span>
+                      </h4>
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${z.contractor === 'AG Enviro' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                        {z.contractor}
                       </span>
                     </div>
-                  )}
-                </div>
-              );
-            })}
+                    <div className="flex justify-between items-center text-[10px]">
+                      <span className="text-slate-500">{z.features}</span>
+                      <span className="font-bold text-slate-700">{z.load}</span>
+                    </div>
+                    {isSelected && (
+                      <div className="mt-2 pt-2 border-t border-emerald-200 flex items-center justify-between">
+                        <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                          Coverage Active
+                        </span>
+                        <span className="text-[9px] text-slate-500 font-bold">
+                          {zoneTruckCount} truck{zoneTruckCount !== 1 ? 's' : ''} deployed
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            ) : (
+              HOTSPOTS_LIST.map(h => {
+                const isSelected = selectedHotspot === h.id;
+                const getRiskStyles = (risk) => {
+                  switch(risk) {
+                    case 'Extreme': return 'bg-red-50 text-red-700 border-red-200';
+                    case 'High': return 'bg-orange-50 text-orange-700 border-orange-200';
+                    case 'Medium': return 'bg-amber-50 text-amber-700 border-amber-200';
+                    default: return 'bg-slate-50 text-slate-700 border-slate-200';
+                  }
+                };
+                return (
+                  <div 
+                    key={`hs-${h.id}`} 
+                    onClick={() => setSelectedHotspot(h.id)}
+                    className={`p-3 border rounded-lg cursor-pointer transition-all flex flex-col gap-2 relative overflow-hidden group ${
+                      isSelected 
+                        ? 'bg-red-50/50 border-red-400 ring-2 ring-red-500/20 shadow-md' 
+                        : 'bg-white border-slate-100 hover:border-slate-300 hover:shadow-sm'
+                    }`}
+                  >
+                    <div className={`absolute top-0 left-0 w-1 h-full transition-colors ${isSelected ? 'bg-red-500' : 'bg-slate-200 group-hover:bg-slate-400'}`}></div>
+                    <div className="flex justify-between items-start pl-2">
+                      <div>
+                        <h4 className={`text-xs font-bold ${isSelected ? 'text-red-900' : 'text-slate-800'}`}>{h.area}</h4>
+                        <p className="text-[10px] text-slate-500 mt-0.5">{h.zone} Zone</p>
+                      </div>
+                      <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase border ${getRiskStyles(h.risk)}`}>
+                        {h.risk} Risk
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
           <div className="p-4 bg-slate-50 border-t border-slate-100">
-            <p className="text-[10px] text-slate-500 italic">Target: 150 MT capacity/station with solar hoppers.</p>
+            <p className="text-[10px] text-slate-500 italic">
+              {viewType === 'stations' ? 'Target: 150 MT capacity/station with solar hoppers.' : 'Hotspots require increased surveillance.'}
+            </p>
           </div>
         </div>
       </div>

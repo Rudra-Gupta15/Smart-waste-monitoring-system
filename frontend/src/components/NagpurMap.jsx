@@ -160,6 +160,7 @@ const MapStyles = () => (
   `}</style>
 );
 
+
 const cpStatusColors = { collected: '#22c55e', pending: '#facc15', missed: '#ef4444' };
 
 function ChangeView({ center }) {
@@ -217,7 +218,10 @@ export default function NagpurMap({
   userLocation = null,
   onLocationSelect = null,
   selectedStation = null,
+  onStationSelect = null,
   trucks = [],
+  staticHotspots = [],
+  selectedStaticHotspot = null,
 }) {
   const activeTickets = tickets.filter(t => t.status !== 'RESOLVED');
 
@@ -279,7 +283,6 @@ export default function NagpurMap({
               </div>
             </Popup>
           </Marker>
-          {/* Hotspot radius circle */}
           <Circle
             center={[t.location.lat, t.location.lng]}
             radius={150}
@@ -292,21 +295,57 @@ export default function NagpurMap({
         </React.Fragment>
       ))}
 
+      {/* Static Identified Hotspots */}
+      {viewType === 'hotspots' && staticHotspots.map(h => {
+        const severityMap = { 'Extreme': 'CRITICAL', 'High': 'HIGH', 'Medium': 'MEDIUM' };
+        const iconSeverity = severityMap[h.risk] || 'MEDIUM';
+        const isSelected = selectedStaticHotspot === h.id;
+        return (
+          <React.Fragment key={`static-hs-${h.id}`}>
+            <Marker
+              position={h.pos}
+              icon={createTicketIcon(iconSeverity)}
+            >
+              <Popup>
+                <div style={{ minWidth: 160, color: '#111' }}>
+                  <strong style={{ fontSize: 13 }}>{h.area}</strong>
+                  <div style={{ fontSize: 11, marginTop: 4 }}>
+                    <div><strong>Zone:</strong> {h.zone}</div>
+                    <div><strong>Risk Level:</strong> <span style={{ color: iconSeverity === 'CRITICAL' ? '#dc2626' : iconSeverity === 'HIGH' ? '#ef4444' : '#f97316', fontWeight: 'bold' }}>{h.risk}</span></div>
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+            {(isSelected || h.risk === 'Extreme') && (
+              <Circle
+                center={h.pos}
+                radius={isSelected ? 120 : 60}
+                pathOptions={{
+                  color: iconSeverity === 'CRITICAL' ? '#dc2626' : iconSeverity === 'HIGH' ? '#ef4444' : '#f97316',
+                  fillColor: iconSeverity === 'CRITICAL' ? '#dc2626' : iconSeverity === 'HIGH' ? '#ef4444' : '#f97316',
+                  fillOpacity: isSelected ? 0.2 : 0.05,
+                  weight: isSelected ? 2 : 1,
+                  dashArray: isSelected ? '5 5' : '',
+                }}
+              />
+            )}
+          </React.Fragment>
+        );
+      })}
+
+
       {/* Garbage Stations */}
       {(viewType === 'stations' || !viewType) && STATIONS.map(s => (
         <React.Fragment key={`station-${s.id}`}>
-          <Marker position={s.pos} icon={createStationIcon(selectedStation === s.id)}>
-            <Popup>
-              <div style={{ minWidth: 160, color: '#111' }}>
-                <strong style={{ fontSize: 13 }}>{s.name}</strong>
-                <div style={{ fontSize: 11, marginTop: 4 }}>
-                  <div><strong>Zone:</strong> {s.zone}</div>
-                  <div><strong>Capacity:</strong> {s.cap}</div>
-                  <div><strong>Tech:</strong> Solar Hoppers</div>
-                  <div style={{ color: '#10b981', fontWeight: 'bold', marginTop: 2 }}>✓ Smart City Active</div>
-                </div>
-              </div>
-            </Popup>
+          <Marker 
+            position={s.pos} 
+            icon={createStationIcon(selectedStation === s.id)}
+            eventHandlers={{
+              click: () => {
+                if (onStationSelect) onStationSelect(s.id);
+              }
+            }}
+          >
           </Marker>
           {/* Coverage area circle for selected station */}
           {selectedStation === s.id && (
@@ -328,6 +367,11 @@ export default function NagpurMap({
       {/* Selected station auto-pan */}
       {selectedStation && (
         <ChangeView center={STATIONS.find(s => s.id === selectedStation)?.pos} />
+      )}
+      
+      {/* Selected static hotspot auto-pan */}
+      {selectedStaticHotspot && viewType === 'hotspots' && (
+        <ChangeView center={staticHotspots.find(h => h.id === selectedStaticHotspot)?.pos} />
       )}
 
       {/* Fleet Trucks */}
