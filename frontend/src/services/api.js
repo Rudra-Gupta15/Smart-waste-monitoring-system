@@ -20,6 +20,13 @@ export async function updateCameraSource(source) {
   return res.json();
 }
 
+export async function updateCameraLocation(lat, lng) {
+  const res = await fetch(`${API_BASE}/detection/location?lat=${lat}&lng=${lng}`, {
+    method: 'POST',
+  });
+  return res.json();
+}
+
 export function getVideoFeedUrl() {
   return `${API_BASE}/detection/video-feed`;
 }

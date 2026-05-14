@@ -94,9 +94,12 @@ def create_ticket_from_detection(detection_result):
     if detection_result.object_count == 0:
         return None
 
-    # Pick a random Nagpur location for demo simulation
-    hotspot = random.choice(NAGPUR_HOTSPOTS)
-    lat, lng = hotspot["lat"], hotspot["lng"]
+    # Use actual detection location
+    lat = getattr(detection_result, 'lat', 21.1458)
+    lng = getattr(detection_result, 'lng', 79.0882)
+    area = getattr(detection_result, 'area', 'Nagpur Central')
+    
+    address = f"AI Detection at {area}"
 
     # De-duplicate: check 100m radius
     existing = _find_duplicate_ticket(lat, lng)
@@ -121,9 +124,9 @@ def create_ticket_from_detection(detection_result):
         "location": {
             "lat": lat,
             "lng": lng,
-            "address": hotspot["address"],
-            "ward": hotspot["ward"],
-            "zone": hotspot["zone"],
+            "address": address,
+            "ward": "Dynamic Ward",
+            "zone": area,
         },
         "severity": detection_result.severity,
         "priority": priority_map.get(detection_result.severity, 3),
@@ -157,9 +160,9 @@ def create_ticket_from_detection(detection_result):
         "id": f"ALT-{len(alerts) + 1:03d}",
         "type": "GARBAGE_DETECTED",
         "severity": detection_result.severity,
-        "message": f"Garbage detected at {hotspot['address']} - {detection_result.object_count} objects ({detection_result.severity})",
+        "message": f"Garbage detected at {area} - {detection_result.object_count} objects ({detection_result.severity})",
         "ticket_id": ticket_id,
-        "location": hotspot,
+        "location": {"lat": lat, "lng": lng, "address": address, "area": area},
         "timestamp": time.time(),
         "acknowledged": False,
     }

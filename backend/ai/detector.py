@@ -34,6 +34,7 @@ from backend.app.config import (
     PER_CLASS_CONFIDENCE,
     MIN_BBOX_AREA_FRACTION,
     MIN_CONSECUTIVE_DETECTIONS,
+    get_area_name,
 )
 
 
@@ -49,6 +50,9 @@ class Detection:
     missed_count: int = 0
     stationary_start: float = field(default_factory=time.time)
     is_confirmed: bool = False
+    lat: float = 0.0
+    lng: float = 0.0
+    area: str = "Unknown"
 
 
 @dataclass
@@ -59,6 +63,9 @@ class FrameResult:
     timestamp: float = 0.0
     frame: Optional[np.ndarray] = None
     annotated_frame: Optional[np.ndarray] = None
+    lat: float = 0.0
+    lng: float = 0.0
+    area: str = "Unknown"
 
 
 # Colors for severity levels (BGR)
@@ -99,6 +106,8 @@ class WasteDetector:
         self._track_lock = threading.Lock()
         self.tracked_objects: List[Detection] = []
         self.next_id = 1
+        self.current_lat = 0.0
+        self.current_lng = 0.0
         self.max_missed = 5   # frames before dropping a lost track
         self.min_streak = 2   # minimum consecutive detections to confirm
 
@@ -232,6 +241,11 @@ class WasteDetector:
             timestamp=time.time(),
             frame=frame,
             annotated_frame=annotated,
+            lat=getattr(self, 'current_lat', 0.0),
+            lng=getattr(self, 'current_lng', 0.0),
+            area=getattr(self, 'current_area_name', None) or get_area_name(
+                getattr(self, 'current_lat', 0.0), getattr(self, 'current_lng', 0.0)
+            ),
         )
 
     def _update_tracks(self, current_detections: List[Detection]):

@@ -15,6 +15,10 @@ CAMERA_SOURCE = os.getenv("CAMERA_SOURCE", 0)
 if str(CAMERA_SOURCE).isdigit():
     CAMERA_SOURCE = int(CAMERA_SOURCE)
 
+# Camera Location
+CAMERA_LAT = float(os.getenv("CAMERA_LAT", "21.1458"))
+CAMERA_LNG = float(os.getenv("CAMERA_LNG", "79.0882"))
+
 # Accuracy filters
 MIN_BBOX_AREA_FRACTION = 0.002  # Object bbox must be >=0.2% of frame area
 MIN_CONSECUTIVE_DETECTIONS = 3  # Report after 3 consistent detections
@@ -96,3 +100,39 @@ SEVERITY_THRESHOLDS = {
 # Server
 API_HOST = os.getenv("API_HOST", "0.0.0.0")
 API_PORT = int(os.getenv("API_PORT", "8000"))
+
+# Nagpur Zones and Areas for mock geocoding
+NAGPUR_ZONES = [
+    {"name": "Laxmi Nagar", "lat": 21.1167, "lng": 79.0667},
+    {"name": "Dharampeth", "lat": 21.1417, "lng": 79.0667},
+    {"name": "Hanuman Nagar", "lat": 21.1230, "lng": 79.0980},
+    {"name": "Dhantoli", "lat": 21.1400, "lng": 79.0850},
+    {"name": "Nehru Nagar", "lat": 21.1200, "lng": 79.1150},
+    {"name": "Gandhibagh", "lat": 21.1550, "lng": 79.1000},
+    {"name": "Satranjipura", "lat": 21.1650, "lng": 79.1100},
+    {"name": "Lakadganj", "lat": 21.1550, "lng": 79.1300},
+    {"name": "Ashi Nagar", "lat": 21.1850, "lng": 79.1150},
+    {"name": "Mangalwari", "lat": 21.1750, "lng": 79.0800},
+    {"name": "Mahal", "lat": 21.1450, "lng": 79.1100},
+    {"name": "Civil Lines", "lat": 21.1550, "lng": 79.0750},
+    {"name": "Ramdaspeth", "lat": 21.1350, "lng": 79.0800},
+    {"name": "IT Park (Parsodi)", "lat": 21.1250, "lng": 79.0500},
+]
+
+def get_area_name(lat: float, lng: float) -> str:
+    """Find the nearest area name in Nagpur."""
+    import math
+    best_area = "Nagpur Central"
+    min_dist = float('inf')
+    
+    for zone in NAGPUR_ZONES:
+        dist = math.sqrt((lat - zone["lat"])**2 + (lng - zone["lng"])**2)
+        if dist < min_dist:
+            min_dist = dist
+            best_area = zone["name"]
+    
+    # If the distance is too far, it's just "Nagpur Outskirts"
+    if min_dist > 0.05:
+        return "Nagpur Region"
+        
+    return best_area

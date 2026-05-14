@@ -4,7 +4,7 @@ import {
   fetchAdminStats, fetchTickets, fetchAlerts, fetchNotifications,
   fetchRecentEvents, fetchWorkers, fetchCollectionPoints,
   markNotificationRead, createDetectionWebSocket, getVideoFeedUrl,
-  createWorker, updateWorker, deleteWorker
+  createWorker, updateWorker, deleteWorker, updateCameraLocation
 } from '../services/api';
 import NagpurMap from '../components/NagpurMap';
 import StatsCard from '../components/StatsCard';
@@ -35,6 +35,8 @@ export default function AdminPanel() {
   const [showNotifs, setShowNotifs] = useState(false);
   const [wsEvents, setWsEvents] = useState([]);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
+  const [currentAreaName, setCurrentAreaName] = useState('Nagpur Central');
   const wsRef = useRef(null);
 
   // Poll data
@@ -88,6 +90,58 @@ export default function AdminPanel() {
     }
     prevNotifsLen.current = notifications.length;
   }, [notifications]);
+  
+  // Real-time Browser Location Sync
+  const syncLocation = () => {
+    if ("geolocation" in navigator) {
+      toast.loading("Detecting live location...", { id: 'geo-sync', duration: 2000 });
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        const { latitude, longitude } = position.coords;
+        console.log(`[Geo] Syncing live location: ${latitude}, ${longitude}`);
+        try {
+          const result = await updateCameraLocation(latitude, longitude);
+          const areaName = result?.area || 'Nagpur Central';
+          setUserLocation([latitude, longitude]);
+          setCurrentAreaName(areaName);
+          toast.success(`📍 ${areaName}`, { 
+            id: 'geo-sync',
+            icon: '📍',
+            style: { borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' } 
+          });
+          // Refresh stats to update area name
+          const s = await fetchAdminStats();
+          setStats(s);
+        } catch (err) {
+          toast.error("Failed to sync GPS with server", { id: 'geo-sync' });
+        }
+      }, (err) => {
+        toast.error(`GPS Error: ${err.message}`, { id: 'geo-sync' });
+      }, { enableHighAccuracy: true, timeout: 10000 });
+    }
+  };
+
+  useEffect(() => {
+    syncLocation();
+  }, []);
+
+  const handleManualLocationSync = async (lat, lng) => {
+    toast.loading("Pinpointing camera location...", { id: 'geo-sync' });
+    try {
+      const result = await updateCameraLocation(lat, lng);
+      const areaName = result?.area || 'Nagpur Central';
+      setUserLocation([lat, lng]);
+      setCurrentAreaName(areaName);
+      toast.success(`📍 ${areaName}`, { 
+        id: 'geo-sync',
+        icon: '📍',
+        style: { borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' } 
+      });
+      const s = await fetchAdminStats();
+      setStats(s);
+    } catch (err) {
+      toast.error("Failed to sync location", { id: 'geo-sync' });
+    }
+  };
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -160,6 +214,19 @@ export default function AdminPanel() {
             <h2 className="text-sm md:text-lg font-black text-slate-800 tracking-tight">{TABS.find(t => t.id === tab)?.label}</h2>
           </div>
           <div className="flex items-center gap-4">
+            <button 
+              onClick={syncLocation}
+              className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-600 transition-all active:scale-95"
+            >
+              <span>📍</span> Sync GPS
+            </button>
+            {/* Live location name pill */}
+            {userLocation && (
+              <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 rounded-lg">
+                <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                <span className="text-[10px] font-black text-green-700 uppercase tracking-widest truncate max-w-[180px]">{currentAreaName}</span>
+              </div>
+            )}
             <span className="text-xs text-slate-500">Nagpur Municipal Corporation</span>
             <button
               onClick={() => setShowNotifs(!showNotifs)}
@@ -189,12 +256,23 @@ export default function AdminPanel() {
 
         <div className="flex-1 p-6 md:p-8 overflow-hidden h-full">
           <div className="max-w-[1600px] mx-auto h-full">
-            {tab === 'overview' && <div className="h-full overflow-y-auto pr-2"><OverviewTab stats={stats} tickets={tickets} events={wsEvents.length > 0 ? wsEvents : events} alerts={alerts} /></div>}
-            {tab === 'monitor' && <div className="h-full overflow-y-auto pr-2"><MonitorTab events={wsEvents.length > 0 ? wsEvents : events} /></div>}
-            {tab === 'map' && <MapTab tickets={tickets} collectionPoints={collectionPoints} workers={workers} />}
-            {tab === 'tickets' && <TicketsTab tickets={tickets} setTickets={setTickets} readOnly={true} />}
-            {tab === 'alerts' && <AlertsTab alerts={alerts} />}
-            {tab === 'workers' && <div className="h-full overflow-y-auto pr-2"><WorkersTab workers={workers} setWorkers={setWorkers} tickets={tickets} /></div>}
+            {!stats ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="w-12 h-12 border-4 border-green-500/20 border-t-green-600 rounded-full animate-spin"></div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Initializing Dashboard...</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                {tab === 'overview' && <div className="h-full overflow-y-auto pr-2"><OverviewTab stats={stats} tickets={tickets} events={wsEvents.length > 0 ? wsEvents : events} alerts={alerts} userLocation={userLocation} currentAreaName={currentAreaName} onLocationSelect={handleManualLocationSync} /></div>}
+                {tab === 'monitor' && <div className="h-full overflow-y-auto pr-2"><MonitorTab events={wsEvents.length > 0 ? wsEvents : events} currentAreaName={currentAreaName} /></div>}
+                {tab === 'map' && <MapTab tickets={tickets} collectionPoints={collectionPoints} workers={workers} liveDetections={wsEvents.filter(e => (Date.now() / 1000 - e.timestamp) < 30)} userLocation={userLocation} onLocationSelect={handleManualLocationSync} />}
+                {tab === 'tickets' && <TicketsTab tickets={tickets} setTickets={setTickets} readOnly={true} />}
+                {tab === 'alerts' && <AlertsTab alerts={alerts} />}
+                {tab === 'workers' && <div className="h-full overflow-y-auto pr-2"><WorkersTab workers={workers} setWorkers={setWorkers} tickets={tickets} /></div>}
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -203,7 +281,7 @@ export default function AdminPanel() {
 }
 
 // ── Overview Tab ──
-function OverviewTab({ stats, tickets, events, alerts }) {
+function OverviewTab({ stats, tickets, events, alerts, userLocation, onLocationSelect }) {
   if (!stats) return <div className="text-gray-500">Loading...</div>;
 
   const recentTickets = [...tickets].sort((a, b) => b.created_at - a.created_at).slice(0, 5);
@@ -228,7 +306,15 @@ function OverviewTab({ stats, tickets, events, alerts }) {
             <span className="text-xs text-slate-500">{tickets.filter(t => t.status !== 'RESOLVED').length} active incidents</span>
           </div>
           <div style={{ height: 'calc(100% - 40px)' }}>
-            <NagpurMap tickets={tickets} showWorkers={false} height="100%" />
+            <NagpurMap 
+              tickets={tickets} 
+              liveDetections={events.filter(e => (Date.now() / 1000 - e.timestamp) < 30)}
+              showWorkers={false} 
+              height="100%" 
+              center={userLocation}
+              userLocation={userLocation}
+              onLocationSelect={onLocationSelect}
+            />
           </div>
         </div>
 
@@ -280,7 +366,7 @@ function OverviewTab({ stats, tickets, events, alerts }) {
 }
 
 // ── Live Monitor Tab ──
-function MonitorTab({ events }) {
+function MonitorTab({ events, currentAreaName }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -288,7 +374,7 @@ function MonitorTab({ events }) {
           <VideoFeed />
         </div>
         <div>
-          <AlertFeed events={events} />
+          <AlertFeed events={events} currentAreaName={currentAreaName} />
         </div>
       </div>
     </div>
@@ -296,9 +382,19 @@ function MonitorTab({ events }) {
 }
 
 // ── Garbage Station Tab ──
-function MapTab({ tickets, collectionPoints, workers }) {
+function MapTab({ tickets, collectionPoints, workers, liveDetections, userLocation, onLocationSelect }) {
   const [viewType, setViewType] = useState('stations'); // 'stations' or 'hotspots'
+  const [selectedStation, setSelectedStation] = useState(null);
+  const [trucks, setTrucks] = useState([]);
   
+  // Station coordinates (must match NagpurMap STATIONS)
+  const stationCoords = {
+    1: [21.1167, 79.0667], 2: [21.1417, 79.0667], 3: [21.1230, 79.0980],
+    4: [21.1400, 79.0850], 5: [21.1200, 79.1150], 6: [21.1550, 79.1000],
+    7: [21.1650, 79.1100], 8: [21.1550, 79.1300], 9: [21.1850, 79.1150],
+    10: [21.1750, 79.0800],
+  };
+
   const zones = [
     { id: 1, name: "Laxmi Nagar", contractor: "AG Enviro", load: "140 MT", features: "Electric Fleet" },
     { id: 2, name: "Dharampeth", contractor: "AG Enviro", load: "145 MT", features: "Secondary Compactor" },
@@ -319,6 +415,64 @@ function MapTab({ tickets, collectionPoints, workers }) {
     { type: "Heavy Tippers", active: 12, total: 15 },
   ];
 
+  // Demo truck definitions — spread across all 10 zones
+  const truckDefs = useRef([
+    { id: 'AT-001', zone: 1, type: 'auto', typeName: 'Auto Tipper', color: '#f59e0b', speed: 18 },
+    { id: 'AT-002', zone: 2, type: 'auto', typeName: 'Auto Tipper', color: '#f59e0b', speed: 15 },
+    { id: 'AT-003', zone: 3, type: 'auto', typeName: 'Auto Tipper', color: '#f59e0b', speed: 20 },
+    { id: 'AT-004', zone: 5, type: 'auto', typeName: 'Auto Tipper', color: '#f59e0b', speed: 16 },
+    { id: 'AT-005', zone: 7, type: 'auto', typeName: 'Auto Tipper', color: '#f59e0b', speed: 22 },
+    { id: 'AT-006', zone: 9, type: 'auto', typeName: 'Auto Tipper', color: '#f59e0b', speed: 19 },
+    { id: 'T4-001', zone: 4, type: 'auto', typeName: 'Tata 407', color: '#3b82f6', speed: 25 },
+    { id: 'T4-002', zone: 6, type: 'auto', typeName: 'Tata 407', color: '#3b82f6', speed: 22 },
+    { id: 'T4-003', zone: 8, type: 'auto', typeName: 'Tata 407', color: '#3b82f6', speed: 28 },
+    { id: 'T4-004', zone: 10, type: 'auto', typeName: 'Tata 407', color: '#3b82f6', speed: 24 },
+    { id: 'EV-001', zone: 1, type: 'ev', typeName: 'Electric Vehicle', color: '#10b981', speed: 30 },
+    { id: 'EV-002', zone: 4, type: 'ev', typeName: 'Electric Vehicle', color: '#10b981', speed: 28 },
+    { id: 'EV-003', zone: 10, type: 'ev', typeName: 'Electric Vehicle', color: '#10b981', speed: 32 },
+    { id: 'HT-001', zone: 8, type: 'heavy', typeName: 'Heavy Tipper', color: '#8b5cf6', speed: 12 },
+    { id: 'HT-002', zone: 6, type: 'heavy', typeName: 'Heavy Tipper', color: '#8b5cf6', speed: 10 },
+  ]).current;
+
+  // Track truck angles for circular movement
+  const truckAngles = useRef(truckDefs.map(() => Math.random() * Math.PI * 2));
+
+  // Animate trucks around their zone station centers
+  useEffect(() => {
+    const interval = setInterval(() => {
+      truckAngles.current = truckAngles.current.map((angle, i) => {
+        // Each truck moves at its own angular speed
+        const speedFactor = 0.03 + (truckDefs[i].speed / 1000);
+        return angle + speedFactor;
+      });
+
+      setTrucks(truckDefs.map((def, i) => {
+        const center = stationCoords[def.zone];
+        const angle = truckAngles.current[i];
+        // Orbit radius ~0.004-0.008 degrees (~400-800m) with some variation
+        const radius = 0.004 + (i % 5) * 0.001;
+        return {
+          ...def,
+          label: `${def.typeName} ${def.id}`,
+          lat: center[0] + Math.sin(angle) * radius,
+          lng: center[1] + Math.cos(angle) * radius * 1.3,
+          status: 'On Route',
+        };
+      }));
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Filter trucks for display — show all, or only the selected zone
+  const visibleTrucks = selectedStation
+    ? trucks.filter(t => t.zone === selectedStation)
+    : trucks;
+
+  const handleStationClick = (zoneId) => {
+    setSelectedStation(prev => prev === zoneId ? null : zoneId);
+  };
+
   return (
     <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-140px)]">
       {/* Map Side */}
@@ -326,7 +480,10 @@ function MapTab({ tickets, collectionPoints, workers }) {
         <div className="flex gap-4 flex-wrap text-[10px] font-medium uppercase tracking-wider text-slate-500">
           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-500"></span> Garbage Hotspot</span>
           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-green-500"></span> Station (Active)</span>
-          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span> Fleet Truck</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-amber-500"></span> Auto Tipper</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-blue-500"></span> Tata 407</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500"></span> Electric</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-purple-500"></span> Heavy Tipper</span>
         </div>
         
         <div className="flex-1 bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-200 relative">
@@ -334,10 +491,31 @@ function MapTab({ tickets, collectionPoints, workers }) {
             tickets={tickets}
             collectionPoints={collectionPoints}
             workers={workers}
+            liveDetections={liveDetections}
             showWorkers={true}
             height="100%"
             viewType={viewType}
+            center={userLocation}
+            onLocationSelect={onLocationSelect}
+            selectedStation={selectedStation}
+            trucks={visibleTrucks}
           />
+          {/* Active zone overlay badge */}
+          {selectedStation && (
+            <div className="absolute top-3 right-3 z-[1000] bg-white/90 backdrop-blur-sm border border-emerald-200 rounded-xl px-4 py-2 shadow-lg flex items-center gap-2">
+              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">
+                Zone {selectedStation} — {zones.find(z => z.id === selectedStation)?.name}
+              </span>
+              <span className="text-[9px] text-slate-400 ml-1">
+                {visibleTrucks.length} trucks active
+              </span>
+              <button
+                onClick={() => setSelectedStation(null)}
+                className="text-slate-400 hover:text-red-500 transition-colors ml-1 text-sm"
+              >×</button>
+            </div>
+          )}
         </div>
 
         {/* Truck Footer */}
@@ -373,23 +551,52 @@ function MapTab({ tickets, collectionPoints, workers }) {
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-1 flex flex-col">
           <div className="p-4 border-b border-slate-100">
             <h3 className="font-bold text-slate-800">Station Directory</h3>
-            <p className="text-[10px] text-slate-400 uppercase font-bold mt-1">Smart City Mission - 10 Administrative Zones</p>
+            <p className="text-[10px] text-slate-400 uppercase font-bold mt-1">
+              {selectedStation ? `Zone ${selectedStation} Selected — Click to deselect` : 'Click a zone to see its coverage area'}
+            </p>
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {zones.map(z => (
-              <div key={z.id} className={`p-3 rounded-lg border transition-all ${z.highlight ? 'bg-slate-50 border-slate-900 ring-1 ring-slate-900/5' : 'bg-white border-slate-100 hover:border-slate-300'}`}>
-                <div className="flex justify-between items-start mb-1">
-                  <h4 className="text-xs font-bold text-slate-800">{z.name} <span className="text-[9px] text-slate-400 ml-1">Zone {z.id}</span></h4>
-                  <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${z.contractor === 'AG Enviro' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
-                    {z.contractor}
-                  </span>
+            {zones.map(z => {
+              const isSelected = selectedStation === z.id;
+              const zoneTruckCount = trucks.filter(t => t.zone === z.id).length;
+              return (
+                <div 
+                  key={z.id} 
+                  onClick={() => handleStationClick(z.id)}
+                  className={`p-3 rounded-lg border transition-all cursor-pointer ${
+                    isSelected 
+                      ? 'bg-emerald-50 border-emerald-400 ring-2 ring-emerald-500/20 shadow-md' 
+                      : z.highlight 
+                        ? 'bg-slate-50 border-slate-900 ring-1 ring-slate-900/5 hover:shadow-md' 
+                        : 'bg-white border-slate-100 hover:border-slate-300 hover:shadow-sm'
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-1">
+                    <h4 className={`text-xs font-bold ${isSelected ? 'text-emerald-800' : 'text-slate-800'}`}>
+                      {z.name} <span className="text-[9px] text-slate-400 ml-1">Zone {z.id}</span>
+                    </h4>
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${z.contractor === 'AG Enviro' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                      {z.contractor}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-[10px]">
+                    <span className="text-slate-500">{z.features}</span>
+                    <span className="font-bold text-slate-700">{z.load}</span>
+                  </div>
+                  {isSelected && (
+                    <div className="mt-2 pt-2 border-t border-emerald-200 flex items-center justify-between">
+                      <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                        Coverage Active
+                      </span>
+                      <span className="text-[9px] text-slate-500 font-bold">
+                        {zoneTruckCount} truck{zoneTruckCount !== 1 ? 's' : ''} deployed
+                      </span>
+                    </div>
+                  )}
                 </div>
-                <div className="flex justify-between items-center text-[10px]">
-                  <span className="text-slate-500">{z.features}</span>
-                  <span className="font-bold text-slate-700">{z.load}</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <div className="p-4 bg-slate-50 border-t border-slate-100">
             <p className="text-[10px] text-slate-500 italic">Target: 150 MT capacity/station with solar hoppers.</p>

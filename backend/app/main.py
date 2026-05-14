@@ -9,8 +9,11 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
 
+# pyrefly: ignore [missing-import]
 from fastapi import FastAPI
+# pyrefly: ignore [missing-import]
 from fastapi.middleware.cors import CORSMiddleware
+# pyrefly: ignore [missing-import]
 from fastapi.staticfiles import StaticFiles
 
 # Add project root to path
@@ -18,7 +21,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from backend.ai.camera import CameraStream, CameraConfig
-from backend.app.config import EVIDENCE_DIR, CAMERA_SOURCE, FRAME_INTERVAL
+from backend.app.config import EVIDENCE_DIR, CAMERA_SOURCE, FRAME_INTERVAL, CAMERA_LAT, CAMERA_LNG
 from backend.app.routers import detection, dashboard, tickets
 from backend.app.services.ticket_engine import create_ticket_from_detection
 
@@ -42,6 +45,8 @@ async def lifespan(app: FastAPI):
         source=source,
         frame_interval=int(os.getenv("FRAME_INTERVAL", str(FRAME_INTERVAL))),
         save_detections=True,
+        latitude=float(os.getenv("CAMERA_LAT", str(CAMERA_LAT))),
+        longitude=float(os.getenv("CAMERA_LNG", str(CAMERA_LNG))),
     )
 
     camera_stream = CameraStream(config)
@@ -101,5 +106,6 @@ def root():
 
 
 if __name__ == "__main__":
+    # pyrefly: ignore [missing-import]
     import uvicorn
     uvicorn.run("backend.app.main:app", host="0.0.0.0", port=8000, reload=True)

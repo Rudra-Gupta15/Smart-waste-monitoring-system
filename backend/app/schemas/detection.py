@@ -6,6 +6,8 @@ class DetectionItem(BaseModel):
     class_name: str
     confidence: float
     bbox: list[int]
+    lat: float = 0.0
+    lng: float = 0.0
 
 
 class DetectionEvent(BaseModel):
@@ -13,6 +15,8 @@ class DetectionEvent(BaseModel):
     severity: str
     object_count: int
     timestamp: float
+    lat: float = 0.0
+    lng: float = 0.0
     detections: list[DetectionItem]
 
 

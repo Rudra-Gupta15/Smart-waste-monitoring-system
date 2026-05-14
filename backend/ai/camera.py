@@ -24,6 +24,8 @@ class CameraConfig:
     frame_interval: int = 2     # Process every N-th frame
     resolution: tuple = (1280, 720)
     save_detections: bool = True
+    latitude: float = 21.1458   # Default Nagpur
+    longitude: float = 79.0882
 
 
 class CameraStream:
@@ -159,6 +161,9 @@ class CameraStream:
             if is_detection_frame:
                 # Run full YOLO detection — wrapped so any crash keeps the thread alive
                 try:
+                    # Update detector with current location before processing
+                    self.detector.current_lat = self.config.latitude
+                    self.detector.current_lng = self.config.longitude
                     result = self.detector.detect(frame)
                 except Exception as e:
                     print(f"[Camera] Detection error: {e}")

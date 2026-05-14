@@ -41,6 +41,9 @@ def record_detection(result):
         "severity": result.severity,
         "object_count": result.object_count,
         "timestamp": result.timestamp,
+        "lat": result.lat,
+        "lng": result.lng,
+        "area": result.area,
         "classes": [d.class_name for d in result.detections],
         "categories": [d.category for d in result.detections],
     }

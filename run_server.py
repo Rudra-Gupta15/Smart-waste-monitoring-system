@@ -11,12 +11,46 @@ Usage:
 import os
 import sys
 import subprocess
+import threading
+import socket
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import uvicorn
 
+# Global to store frontend process for cleanup
+frontend_proc = None
+
+def wait_for_port(port, timeout=60):
+    """Wait for a port to become active on localhost."""
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        try:
+            with socket.create_connection(("127.0.0.1", port), timeout=1):
+                return True
+        except (OSError, ConnectionRefusedError):
+            time.sleep(1)
+    return False
+
+def start_frontend_delayed(frontend_dir, port):
+    """Wait for backend then start frontend."""
+    global frontend_proc
+    
+    if wait_for_port(port):
+        print(f"\n[*] Backend is ready. Starting Frontend (npm run dev)...")
+        try:
+            # Use shell=True for Windows to find npm
+            frontend_proc = subprocess.Popen(
+                ["npm", "run", "dev"],
+                cwd=str(frontend_dir),
+                shell=True
+            )
+        except Exception as e:
+            print(f"[!] Could not start frontend: {e}")
+    else:
+        print(f"\n[!] Backend failed to start on port {port} within timeout. Frontend not started.")
 
 def main():
     import argparse
@@ -30,20 +64,15 @@ def main():
     if args.source is not None:
         os.environ["CAMERA_SOURCE"] = args.source
 
-    frontend_proc = None
-    if not args.no_frontend:
-        frontend_dir = Path(__file__).resolve().parent / "frontend"
-        if frontend_dir.exists():
-            print("\n[*] Starting Frontend (npm run dev)...")
-            try:
-                # Use shell=True for Windows to find npm
-                frontend_proc = subprocess.Popen(
-                    ["npm", "run", "dev"],
-                    cwd=str(frontend_dir),
-                    shell=True
-                )
-            except Exception as e:
-                print(f"[!] Could not start frontend: {e}")
+    frontend_dir = Path(__file__).resolve().parent / "frontend"
+    
+    if not args.no_frontend and frontend_dir.exists():
+        # Start frontend in a separate thread that waits for backend
+        threading.Thread(
+            target=start_frontend_delayed, 
+            args=(frontend_dir, args.port),
+            daemon=True
+        ).start()
 
     print("=" * 55)
     print("  Smart Waste Management System")
@@ -52,7 +81,7 @@ def main():
     print(f"  API Server:  http://localhost:{args.port}")
     print(f"  API Docs:    http://localhost:{args.port}/docs")
     print(f"  Video Feed:  http://localhost:{args.port}/api/detection/video-feed")
-    print(f"  Frontend:    http://localhost:5173")
+    print(f"  Frontend:    http://localhost:3000") # Vite default port in config
     print("=" * 55)
 
     try:
@@ -62,6 +91,8 @@ def main():
             port=args.port,
             reload=False,
         )
+    except KeyboardInterrupt:
+        pass
     finally:
         if frontend_proc:
             print("\n[*] Shutting down frontend...")
