@@ -70,6 +70,11 @@ class CameraStream:
         # Reduce internal buffer size to minimum to avoid lag
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
+        # Get original video FPS to prevent playing too fast
+        self.fps = self.cap.get(cv2.CAP_PROP_FPS)
+        if not self.fps or self.fps <= 0:
+            self.fps = 30.0
+
         self.running = True
         
         # Thread 1: Continuous Frame Capture (Producer)
@@ -119,14 +124,20 @@ class CameraStream:
 
     def _capture_loop(self):
         """Low-latency capture loop that always keeps the latest frame available."""
+        is_file = isinstance(self.config.source, str) and Path(self.config.source).is_file()
+        # 0.5x speed requested: Multiply delay by 2.0
+        frame_delay = (1.0 / self.fps) * 2.0 if hasattr(self, 'fps') and self.fps > 0 else (1.0 / 30.0) * 2.0
+
         while self.running:
             try:
+                start_time = time.time()
+                
                 if self.cap is None or not self.cap.isOpened():
                     time.sleep(0.1)
                     continue
                 ret, frame = self.cap.read()
                 if not ret:
-                    if isinstance(self.config.source, str) and Path(self.config.source).is_file():
+                    if is_file:
                         self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
                         continue
                     print("[Camera] Failed to read frame. Capture loop exiting.")
@@ -135,8 +146,15 @@ class CameraStream:
                 with self._lock:
                     self._latest_raw_frame = frame
                 
-                # Tiny sleep to yield
-                time.sleep(0.001)
+                if is_file:
+                    # Maintain real video speed
+                    elapsed = time.time() - start_time
+                    sleep_time = frame_delay - elapsed
+                    if sleep_time > 0:
+                        time.sleep(sleep_time)
+                else:
+                    # Tiny sleep to yield for live cameras
+                    time.sleep(0.001)
             except Exception as e:
                 print(f"[Camera] Capture error: {e}")
                 time.sleep(0.1)

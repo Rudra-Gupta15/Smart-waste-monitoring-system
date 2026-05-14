@@ -7,6 +7,7 @@ EVIDENCE_DIR = DATA_DIR / "evidence"
 MODELS_DIR = DATA_DIR / "models"
 
 EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
+MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Detection settings
 CONFIDENCE_THRESHOLD = 0.25
@@ -20,67 +21,94 @@ CAMERA_LAT = float(os.getenv("CAMERA_LAT", "21.1458"))
 CAMERA_LNG = float(os.getenv("CAMERA_LNG", "79.0882"))
 
 # Accuracy filters
-MIN_BBOX_AREA_FRACTION = 0.002  # Object bbox must be >=0.2% of frame area
-MIN_CONSECUTIVE_DETECTIONS = 3  # Report after 3 consistent detections
+MIN_BBOX_AREA_FRACTION = 0.0005  # Object bbox must be >=0.05% of frame area to catch tiny litter
+MIN_CONSECUTIVE_DETECTIONS = 2  # Report after 2 consistent detections
 
 # Per-class confidence overrides (stricter for context-dependent classes)
 PER_CLASS_CONFIDENCE = {
-    "bottle":       0.35,
-    "cup":          0.35,
-    "bowl":         0.40,
-    "banana":       0.40,
-    "apple":        0.40,
-    "orange":       0.40,
-    "sandwich":     0.40,
-    "hot dog":      0.40,
-    "pizza":        0.40,
-    "cake":         0.40,
-    "carrot":       0.40,
-    "backpack":     0.45,
-    "handbag":      0.45,
-    "suitcase":     0.40,
-    "toilet":       0.45,
-    "refrigerator": 0.45,
-    "sink":         0.45,
-    "microwave":    0.45,
-    "oven":         0.45,
-    "toaster":      0.45,
+    "bottle":       0.20,
+    "cup":          0.20,
+    "bowl":         0.20,
+    "banana":       0.20,
+    "apple":        0.20,
+    "orange":       0.20,
+    "sandwich":     0.20,
+    "hot dog":      0.20,
+    "pizza":        0.20,
+    "cake":         0.20,
+    "carrot":       0.20,
+    "backpack":     0.25,
+    "handbag":      0.25,
+    "suitcase":     0.25,
+    "toilet":       0.30,
+    "refrigerator": 0.30,
+    "sink":         0.30,
+    "microwave":    0.30,
+    "oven":         0.30,
+    "toaster":      0.30,
+    "chair":        0.25,
+    "bird":         0.10,
 }
 
-# YOLO model path
-# - Default: yolov8n.pt (COCO) — detects bottles, cups, bowls, food items as waste proxies
-# - Swap to garbage.pt below once you download a garbage-specific model
+# YOLO model path — check multiple locations in priority order:
+# 1. Custom garbage.pt in data/models/
+# 2. yolov8m.pt in data/models/
+# 3. yolov8m.pt in project root (common download location)
 GARBAGE_MODEL = MODELS_DIR / "garbage.pt"
-YOLO_MODEL = str(GARBAGE_MODEL) if GARBAGE_MODEL.exists() else str(MODELS_DIR / "yolov8m.pt")
+_models_dir_yolo = MODELS_DIR / "yolov8m.pt"
+_root_yolo = BASE_DIR / "yolov8m.pt"
+# if GARBAGE_MODEL.exists():
+#     YOLO_MODEL = str(GARBAGE_MODEL)
+if _models_dir_yolo.exists():
+    YOLO_MODEL = str(_models_dir_yolo)
+elif _root_yolo.exists():
+    YOLO_MODEL = str(_root_yolo)
+else:
+    YOLO_MODEL = "yolov8m.pt"  # Let ultralytics auto-download
 
 # COCO classes used as waste proxies (yolov8s.pt is COCO-pretrained, no custom garbage classes)
 # These are the best available COCO classes that appear as discarded waste
 
 # Discarded containers
-CONTAINER_WASTE = {"bottle", "cup", "bowl"}
+CONTAINER_WASTE = {"bowl", "vase"}
+
+# Plastics (including 'bird' as COCO often misclassifies white trash bags as birds)
+PLASTIC_WASTE = {"bottle", "cup", "bird"}
 
 # Food litter (commonly found discarded on streets)
-FOOD_WASTE = {"banana", "apple", "orange", "sandwich", "hot dog", "pizza", "cake", "carrot"}
+FOOD_WASTE = {"banana", "apple", "orange", "sandwich", "hot dog", "pizza", "cake", "carrot", "donut"}
 
 # Abandoned items
-ABANDONED_ITEMS = {"suitcase", "backpack", "handbag"}
+ABANDONED_ITEMS = {"suitcase", "backpack", "handbag", "umbrella"}
 
 # Dumped household appliances
 HOUSEHOLD_WASTE = {"toilet", "refrigerator", "microwave", "oven", "toaster", "sink"}
 
-# Electronics / Small items often dumped
-ELECTRONIC_WASTE = {"cell phone", "remote", "mouse", "keyboard", "book"}
+# Furniture and large objects
+FURNITURE_WASTE = {"chair", "couch", "bed", "dining table", "bench"}
 
-# Combined waste classes
-WASTE_CLASSES = CONTAINER_WASTE | FOOD_WASTE | ABANDONED_ITEMS | HOUSEHOLD_WASTE | ELECTRONIC_WASTE
+# Electronics / Small items often dumped
+ELECTRONIC_WASTE = {"cell phone", "remote", "mouse", "keyboard", "book", "tv", "laptop", "clock", "hair drier"}
+
+# Combined waste classes (Refined to reduce false positives)
+WASTE_CLASSES = CONTAINER_WASTE | PLASTIC_WASTE | FOOD_WASTE | ABANDONED_ITEMS | HOUSEHOLD_WASTE | FURNITURE_WASTE | ELECTRONIC_WASTE
 
 # Category labels for display
 WASTE_CATEGORY_MAP = {}
-for _cls in CONTAINER_WASTE:  WASTE_CATEGORY_MAP[_cls] = "Container/Utensil"
+for _cls in CONTAINER_WASTE:   WASTE_CATEGORY_MAP[_cls] = "Container/Utensil"
+for _cls in PLASTIC_WASTE:     WASTE_CATEGORY_MAP[_cls] = "Plastic Waste"
 for _cls in FOOD_WASTE:        WASTE_CATEGORY_MAP[_cls] = "Food Waste"
 for _cls in ABANDONED_ITEMS:   WASTE_CATEGORY_MAP[_cls] = "Abandoned Item"
 for _cls in HOUSEHOLD_WASTE:   WASTE_CATEGORY_MAP[_cls] = "Household Waste"
+for _cls in FURNITURE_WASTE:   WASTE_CATEGORY_MAP[_cls] = "Furniture Waste"
 for _cls in ELECTRONIC_WASTE:  WASTE_CATEGORY_MAP[_cls] = "E-Waste"
+WASTE_CATEGORY_MAP["person"] = "Person"
+
+# Support for custom garbage.pt classes
+CUSTOM_GARBAGE = {"garbage", "plastic_bag", "trash_bag", "litter", "garbage_pile", "bin"}
+WASTE_CLASSES |= CUSTOM_GARBAGE
+for _cls in CUSTOM_GARBAGE:
+    WASTE_CATEGORY_MAP[_cls] = "Garbage"
 
 # Custom garbage classes (when using fine-tuned TACO model)
 GARBAGE_CLASSES = {

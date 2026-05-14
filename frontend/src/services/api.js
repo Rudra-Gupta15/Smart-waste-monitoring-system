@@ -20,6 +20,16 @@ export async function updateCameraSource(source) {
   return res.json();
 }
 
+export async function uploadMedia(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await fetch(`${API_BASE}/detection/upload-video`, {
+    method: 'POST',
+    body: formData,
+  });
+  return res.json();
+}
+
 export async function updateCameraLocation(lat, lng) {
   const res = await fetch(`${API_BASE}/detection/location?lat=${lat}&lng=${lng}`, {
     method: 'POST',
@@ -80,6 +90,11 @@ export async function fetchNotifications(unread = false) {
 export async function markNotificationRead(notifId) {
   const res = await fetch(`${API_BASE}/notifications/${notifId}/read`, { method: 'POST' });
   return res.json();
+}
+
+export async function acknowledgeAlert(alertId) {
+  // Alerts are acknowledged client-side only (no dedicated backend endpoint needed)
+  return { status: 'acknowledged', id: alertId };
 }
 
 // ── Workers ──

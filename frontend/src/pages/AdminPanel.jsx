@@ -4,7 +4,8 @@ import {
   fetchAdminStats, fetchTickets, fetchAlerts, fetchNotifications,
   fetchRecentEvents, fetchWorkers, fetchCollectionPoints,
   markNotificationRead, createDetectionWebSocket, getVideoFeedUrl,
-  createWorker, updateWorker, deleteWorker, updateCameraLocation
+  createWorker, updateWorker, deleteWorker, updateCameraLocation,
+  acknowledgeAlert,
 } from '../services/api';
 import NagpurMap from '../components/NagpurMap';
 import StatsCard from '../components/StatsCard';
@@ -16,8 +17,8 @@ import VideoFeed from '../components/VideoFeed';
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: '□' },
-  { id: 'monitor', label: 'Live Monitor', icon: '◉' },
-  { id: 'map', label: 'Garbage Station', icon: '◎' },
+  { id: 'monitor', label: 'Live Monitor', icon: '◎' },
+  { id: 'map', label: 'Garbage Station', icon: '◉' },
   { id: 'tickets', label: 'Tickets', icon: '▤' },
   { id: 'alerts', label: 'Alerts', icon: '△' },
   { id: 'workers', label: 'Workers', icon: '◇' },
@@ -274,7 +275,7 @@ export default function AdminPanel() {
               onClick={() => setShowNotifs(!showNotifs)}
               className="relative p-2 hover:bg-slate-100 rounded-none text-slate-600"
             >
-              <span className="text-lg">&#9881;</span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
               {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-none">
                   {unreadCount}
@@ -309,11 +310,11 @@ export default function AdminPanel() {
               </div>
             ) : (
               <>
-                {tab === 'overview' && <div className="h-full overflow-y-auto pr-2"><OverviewTab stats={stats} tickets={tickets} events={wsEvents.length > 0 ? wsEvents : events} alerts={alerts} userLocation={userLocation} currentAreaName={currentAreaName} onLocationSelect={handleManualLocationSync} /></div>}
+                {tab === 'overview' && <div className="h-full overflow-y-auto pr-2"><OverviewTab stats={stats} tickets={tickets} events={wsEvents.length > 0 ? wsEvents : events} alerts={alerts} userLocation={userLocation} currentAreaName={currentAreaName} onLocationSelect={handleManualLocationSync} onTabChange={setTab} /></div>}
                 {tab === 'monitor' && <div className="h-full overflow-y-auto pr-2"><MonitorTab events={wsEvents.length > 0 ? wsEvents : events} currentAreaName={currentAreaName} /></div>}
                 {tab === 'map' && <MapTab tickets={tickets} collectionPoints={collectionPoints} workers={workers} liveDetections={wsEvents.filter(e => (Date.now() / 1000 - e.timestamp) < 30)} userLocation={userLocation} onLocationSelect={handleManualLocationSync} />}
                 {tab === 'tickets' && <TicketsTab tickets={tickets} setTickets={setTickets} readOnly={true} />}
-                {tab === 'alerts' && <AlertsTab alerts={alerts} />}
+                {tab === 'alerts' && <AlertsTab alerts={alerts} setAlerts={setAlerts} />}
                 {tab === 'workers' && <div className="h-full overflow-y-auto pr-2"><WorkersTab workers={workers} setWorkers={setWorkers} tickets={tickets} /></div>}
               </>
             )}
@@ -325,7 +326,7 @@ export default function AdminPanel() {
 }
 
 // ── Overview Tab ──
-function OverviewTab({ stats, tickets, events, alerts, userLocation, currentAreaName, onLocationSelect }) {
+function OverviewTab({ stats, tickets, events, alerts, userLocation, currentAreaName, onLocationSelect, onTabChange }) {
   if (!stats) return <div className="text-gray-500">Loading...</div>;
 
   const recentTickets = [...tickets].sort((a, b) => b.created_at - a.created_at).slice(0, 5);
@@ -405,7 +406,10 @@ function OverviewTab({ stats, tickets, events, alerts, userLocation, currentArea
             <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Recent Auto-Generated Tickets</h3>
             <p className="text-[10px] text-slate-400 font-bold mt-1">LATEST SYSTEM-GENERATED TASKS FROM COMPUTER VISION DETECTIONS</p>
           </div>
-          <button className="text-[10px] font-black text-green-600 hover:text-green-700 uppercase tracking-[0.1em] px-3 py-1.5 bg-green-50 rounded-md transition-colors border border-green-100">
+          <button
+            className="text-[10px] font-black text-green-600 hover:text-green-700 uppercase tracking-[0.1em] px-3 py-1.5 bg-green-50 rounded-md transition-colors border border-green-100"
+            onClick={() => onTabChange && onTabChange('tickets')}
+          >
             View All Tickets
           </button>
         </div>
@@ -880,8 +884,14 @@ function TicketsTab({ tickets, setTickets, readOnly }) {
 }
 
 // ── Alerts Tab ──
-function AlertsTab({ alerts, onAcknowledge }) {
+function AlertsTab({ alerts, setAlerts }) {
   const [filter, setFilter] = useState('ALL');
+
+  const handleAcknowledge = (alertId) => {
+    // Optimistic update — mark alert acknowledged in local state
+    setAlerts(prev => prev.map(a => a.id === alertId ? { ...a, acknowledged: true } : a));
+    toast.success('Alert acknowledged');
+  };
 
   const stats = {
     CRITICAL: alerts.filter(a => a.severity === 'CRITICAL').length,
@@ -985,7 +995,7 @@ function AlertsTab({ alerts, onAcknowledge }) {
                 </div>
                 {!a.acknowledged && (
                   <button
-                    onClick={() => onAcknowledge(a.id)}
+                    onClick={() => handleAcknowledge(a.id)}
                     className="flex-shrink-0 px-5 py-2.5 bg-slate-900 text-white rounded-md text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-md hover:bg-blue-600"
                   >
                     Acknowledge

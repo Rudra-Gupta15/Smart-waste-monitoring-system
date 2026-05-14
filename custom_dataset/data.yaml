@@ -1,0 +1,5 @@
+train: c:/Study/Projects/smart waste management/custom_dataset/train/images
+val: c:/Study/Projects/smart waste management/custom_dataset/val/images
+
+nc: 1
+names: ['Garbage']

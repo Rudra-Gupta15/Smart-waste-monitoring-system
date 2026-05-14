@@ -79,14 +79,17 @@ SEVERITY_COLORS = {
 
 # Colors per waste category (BGR for OpenCV)
 CATEGORY_COLORS = {
+    "Plastic Waste":     (0, 255, 255),
     "Paper/Stationery":  (0, 200, 255),
     "Food Waste":        (0, 255, 100),
     "Container/Utensil": (255, 100, 0),
     "Abandoned Item":    (200, 0, 200),
     "E-Waste":           (0, 100, 255),
     "Household Waste":   (100, 100, 255),
+    "Furniture Waste":   (150, 100, 50),
     "Misc Waste":        (200, 200, 0),
     "Garbage":           (0, 140, 255),
+    "Person":            (255, 255, 0),  # Cyan for people
     "default":           (0, 255, 0),
 }
 
@@ -148,7 +151,9 @@ class WasteDetector:
             # so the filter `if self.waste_class_ids` evaluates False → all pass
             self.waste_class_ids = set()
             for name in self.class_names.values():
-                WASTE_CATEGORY_MAP[name] = "Garbage"
+                # Provide nice human-readable category names for custom classes
+                formatted_name = name.replace("_", " ").title()
+                WASTE_CATEGORY_MAP[name] = formatted_name
             print("[Detector] Custom garbage model detected — all classes treated as waste.")
         else:
             # COCO model: only approved waste proxy classes
@@ -199,8 +204,13 @@ class WasteDetector:
             class_name = self.class_names.get(class_id, "unknown")
             conf = float(box.conf[0])
 
-            # Filter: only waste classes (skip silently — no print spam)
-            if self.waste_class_ids and class_id not in self.waste_class_ids:
+            # 1. Explicit exclusion: Never treat actual animals as waste
+            if class_name in ["dog", "cat"]:
+                continue
+
+            # 2. Filter: allow waste classes OR people (informational)
+            is_person = (class_name == "person")
+            if self.waste_class_ids and class_id not in self.waste_class_ids and not is_person:
                 continue
 
             # Per-class confidence override
@@ -234,10 +244,13 @@ class WasteDetector:
         severity = self._assess_severity(confirmed)
         annotated = self._annotate_frame(frame.copy(), display, severity, frame_w, frame_h)
 
+        # 3. Prepare reporting data (Exclude 'Person' from logs/database)
+        reporting_detections = [d for d in confirmed if d.category != "Person"]
+
         return FrameResult(
-            detections=confirmed,
+            detections=reporting_detections,
             severity=severity,
-            object_count=len(confirmed),
+            object_count=len(reporting_detections),
             timestamp=time.time(),
             frame=frame,
             annotated_frame=annotated,
@@ -312,7 +325,10 @@ class WasteDetector:
 
     def _assess_severity(self, detections: List[Detection]) -> str:
         """Map confirmed detection count to a severity level."""
-        count = len(detections)
+        # Only count objects that are NOT in the "Person" category
+        waste_detections = [d for d in detections if d.category != "Person"]
+        count = len(waste_detections)
+
         if count == 0:
             return "NONE"
         for level, (lo, hi) in SEVERITY_THRESHOLDS.items():
@@ -342,7 +358,10 @@ class WasteDetector:
 
             if det.is_confirmed:
                 color = det.color
-                status = "CONFIRMED WASTE"
+                if det.category == "Person":
+                    status = "PERSON (Monitoring)"
+                else:
+                    status = f"CONFIRMED {det.category.upper()}"
             else:
                 color = (150, 150, 150)
                 wait = max(0.0, 3.0 - (now - det.stationary_start))

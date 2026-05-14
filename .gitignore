@@ -7,6 +7,7 @@ env/
 .env
 
 # Models & Data
+*.pt
 data/models/*.pt
 data/evidence/*.jpg
 data/evidence/*.png

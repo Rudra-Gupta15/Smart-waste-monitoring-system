@@ -9,14 +9,19 @@ import urllib.request
 import urllib.parse
 
 # pyrefly: ignore [missing-import]
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, UploadFile, File
 # pyrefly: ignore [missing-import]
 from fastapi.responses import StreamingResponse, JSONResponse
+import shutil
+from pathlib import Path
 
 from backend.app.schemas.detection import CameraSourceRequest
 from backend.app.config import get_area_name
 
 router = APIRouter(prefix="/api/detection", tags=["detection"])
+
+UPLOAD_DIR = Path("data/uploads")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
 @router.post("/source")
@@ -30,6 +35,30 @@ def update_camera_source(request: CameraSourceRequest):
         return {"status": "success", "source": request.source}
     except Exception as e:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=400)
+
+
+@router.post("/upload-video")
+async def upload_video(file: UploadFile = File(...)):
+    """Upload a video file and set it as the camera source."""
+    if _camera_stream is None:
+        return JSONResponse({"status": "error", "message": "Camera stream not initialized"}, status_code=500)
+
+    try:
+        file_path = UPLOAD_DIR / file.filename
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Update camera source to the uploaded video file
+        _camera_stream.update_source(str(file_path.absolute()))
+        
+        return {
+            "status": "success", 
+            "message": "Video uploaded and source updated",
+            "filename": file.filename,
+            "path": str(file_path)
+        }
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
 
 @router.post("/location")
@@ -201,7 +230,10 @@ async def detection_events_ws(websocket: WebSocket):
                 ids_changed = current_ids != last_object_ids
                 time_passed = result.timestamp - last_sent_timestamp > 30
                 
-                if result.object_count > 0 and (ids_changed or time_passed):
+                # Send event if we have objects OR if we just dropped to 0 objects (so UI clears)
+                should_send = (result.object_count > 0 and (ids_changed or time_passed)) or (result.object_count == 0 and len(last_object_ids) > 0)
+                
+                if should_send:
                     event = {
                         "event": "waste_detected",
                         "severity": result.severity,

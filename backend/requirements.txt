@@ -10,15 +10,7 @@ ultralytics==8.2.0
 opencv-python-headless==4.10.0.84
 numpy>=1.26.0
 
-# Database
-sqlalchemy==2.0.30
-psycopg[binary]>=3.1.0
-alembic==1.13.1
-
-# Cache
-redis==5.0.4
-
 # Utilities
 python-dotenv==1.0.1
 Pillow>=10.4.0
-
+torch>=2.0.0

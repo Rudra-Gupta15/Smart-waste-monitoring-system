@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { getVideoFeedUrl, fetchCameraStatus, updateCameraSource } from '../services/api';
+import React, { useState, useEffect, useRef } from 'react';
+import { getVideoFeedUrl, fetchCameraStatus, updateCameraSource, uploadMedia } from '../services/api';
 import { toast } from 'react-hot-toast';
 
 export default function VideoFeed() {
@@ -9,6 +9,7 @@ export default function VideoFeed() {
   const [newSource, setNewSource] = useState('');
   const [loading, setLoading] = useState(false);
   const [feedKey, setFeedKey] = useState(0);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     fetchCameraStatus().then(setStatus).catch(console.error);
@@ -43,7 +44,7 @@ export default function VideoFeed() {
 
       <div className="px-4 py-2.5 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
         <div className="flex items-center gap-3">
-          <h3 className="text-slate-800 font-semibold text-sm">AI Camera Feed - Waste Detection</h3>
+          <h3 className="text-slate-800 font-bold uppercase tracking-widest text-sm">LIVE MONITOR</h3>
           {status && (
             <span className="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded-md text-slate-500 font-mono">
               src: {status.source}
@@ -68,25 +69,64 @@ export default function VideoFeed() {
 
       {showSettings && (
         <div className="p-4 bg-slate-50 border-b border-slate-200 backdrop-blur-sm">
-          <form onSubmit={handleUpdateSource} className="flex gap-2">
+          <form onSubmit={handleUpdateSource} className="flex gap-2 mb-3">
             <input 
               type="text" 
               placeholder="Source (0, 1, or URL)"
               value={newSource}
               onChange={(e) => setNewSource(e.target.value)}
-              className="flex-1 bg-white border border-slate-200 rounded-none px-3 py-1.5 text-sm text-slate-800 focus:outline-none focus:border-green-500 shadow-sm"
+              className="flex-1 bg-white border border-slate-200 rounded-md px-3 py-1.5 text-sm text-slate-800 focus:outline-none focus:border-green-500 shadow-sm"
             />
             <button 
               type="submit"
               disabled={loading}
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
             >
-
               {loading ? 'Updating...' : 'Switch'}
             </button>
           </form>
+          
+          <div className="flex items-center gap-2">
+            <input 
+              type="file" 
+              accept="video/*,image/*"
+              className="hidden" 
+              ref={fileInputRef}
+              onChange={async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                setLoading(true);
+                toast.loading('Uploading media...', { id: 'media-upload' });
+                try {
+                  const res = await uploadMedia(file);
+                  if (res.status === 'success') {
+                    toast.success('Media uploaded successfully!', { id: 'media-upload' });
+                    setFeedKey(prev => prev + 1);
+                    setShowSettings(false);
+                    setError(false);
+                  } else {
+                    toast.error(res.message || 'Upload failed', { id: 'media-upload' });
+                  }
+                } catch (err) {
+                  toast.error('Network error uploading media', { id: 'media-upload' });
+                } finally {
+                  setLoading(false);
+                  if (fileInputRef.current) fileInputRef.current.value = '';
+                }
+              }}
+            />
+            <button 
+              type="button"
+              disabled={loading}
+              onClick={() => fileInputRef.current?.click()}
+              className="flex-1 bg-slate-800 hover:bg-slate-900 text-white px-4 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <span>📁</span> Upload Media for Detection
+            </button>
+          </div>
+          
           <p className="text-[10px] text-slate-400 mt-2">
-            * Use 0/1 for local webcams, or enter DroidCam/IP URL (e.g. http://192.168.1.10:4747/video)
+            * Use 0/1 for local webcams, enter DroidCam/IP URL, or upload a video/image file.
           </p>
         </div>
       )}
