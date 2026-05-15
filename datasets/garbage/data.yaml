@@ -3,9 +3,8 @@ train: images/train
 val: images/val
 
 names:
-  0: garbage
-  1: plastic_bag
-  2: trash_bag
-  3: litter
-  4: garbage_pile
-  5: bin
+  0: glass
+  1: metal
+  2: paper
+  3: plastic
+  4: waste

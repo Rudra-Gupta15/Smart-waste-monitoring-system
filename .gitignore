@@ -1,36 +1,58 @@
-# Python
+# ── Python ──────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
-*$py.class
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# ── Virtual environment ──────────────────────────────────────────────
 venv/
+.venv/
 env/
 .env
 
-# Models & Data
+# ── ML / Model weights ──────────────────────────────────────────────
+# Large binary model files — download/train separately
 *.pt
 *.onnx
-*.weights
-*.jpg
-*.jpeg
-*.png
-*.mp4
-*.avi
-# IDEs
-.vscode/
-.idea/
-*.swp
-*.swo
+*.engine
+*.tflite
+*.pb
+runs/          # YOLO training runs
+datasets/      # Training datasets (regenerated via train_custom_model.py)
+custom_dataset/
+custom_training/
+Waste/         # Raw training images
 
-# Node / Frontend
-node_modules/
+# ── Data / Uploads / Evidence ────────────────────────────────────────
+data/uploads/
+data/evidence/
+# Keep data/models/ directory tracked (but not the .pt files inside)
+data/models/*.pt
+
+# ── Frontend build ────────────────────────────────────────────────────
+frontend/node_modules/
 frontend/dist/
-frontend/build/
-.eslintcache
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Project Specific
+frontend/.dist/
 .dist/
-SMART_WASTE_MANAGEMENT_PLAN.md
+
+# ── IDE / OS ──────────────────────────────────────────────────────────
+.vscode/settings.json
+.idea/
+*.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Secrets / Env ─────────────────────────────────────────────────────
+.env
+.env.*
+*.env
+
+# ── Misc ──────────────────────────────────────────────────────────────
+*.log
+*.tmp
+*.bak

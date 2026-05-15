@@ -58,12 +58,11 @@ train: images/train
 val: images/val
 
 names:
-  0: garbage
-  1: plastic_bag
-  2: trash_bag
-  3: litter
-  4: garbage_pile
-  5: bin
+  0: glass
+  1: metal
+  2: paper
+  3: plastic
+  4: waste
 """
     yaml_path = DATASET_DIR / "data.yaml"
     with open(yaml_path, "w") as f:
@@ -74,8 +73,13 @@ names:
 
 def train_model(yaml_path):
     print("[*] Starting training...")
-    # Start with YOLOv8 nano for speed
-    model = YOLO("yolov8n.pt")
+    # Start with best_model.pt for transfer learning
+    base_model_path = BASE_DIR / "data" / "models" / "best_model.pt"
+    if base_model_path.exists():
+        print(f"[*] Fine-tuning existing model: {base_model_path}")
+        model = YOLO(str(base_model_path))
+    else:
+        model = YOLO("yolov8n.pt")
     
     results = model.train(
         data=str(yaml_path),
@@ -85,8 +89,8 @@ def train_model(yaml_path):
         name="garbage_model"
     )
     
-    # Move trained model to data/models/garbage.pt
-    model_dest = BASE_DIR / "data" / "models" / "garbage.pt"
+    # Move trained model to data/models/best_model.pt
+    model_dest = BASE_DIR / "data" / "models" / "best_model.pt"
     model_dest.parent.mkdir(parents=True, exist_ok=True)
     
     trained_weights = Path(results.save_dir) / "weights" / "best.pt"

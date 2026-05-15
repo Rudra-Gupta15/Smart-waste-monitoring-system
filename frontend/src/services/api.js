@@ -41,6 +41,13 @@ export function getVideoFeedUrl() {
   return `${API_BASE}/detection/video-feed`;
 }
 
+export async function togglePause() {
+  const res = await fetch(`${API_BASE}/detection/toggle-pause`, {
+    method: 'POST',
+  });
+  return res.json();
+}
+
 // ── Dashboard Stats ──
 export async function fetchStats() {
   const res = await fetch(`${API_BASE}/dashboard/stats`);

@@ -17,6 +17,9 @@ import numpy as np
 from backend.ai.detector import WasteDetector, FrameResult
 from backend.app.config import CAMERA_SOURCE, FRAME_INTERVAL, EVIDENCE_DIR
 
+# File extensions treated as static images (use detect_image, not detect)
+IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp"}
+
 
 @dataclass
 class CameraConfig:
@@ -36,6 +39,7 @@ class CameraStream:
         self.detector = WasteDetector()
         self.cap: Optional[cv2.VideoCapture] = None
         self.running = False
+        self.paused = False
         self._lock = threading.Lock()
         
         # State
@@ -53,38 +57,54 @@ class CameraStream:
 
     def start(self):
         """Open camera and start capture/processing threads."""
-        self.detector.load_model()
+        # Only load model once — skipping reload on every update_source() call
+        # prevents blocking FastAPI's event loop for 5-15 seconds on each upload.
+        if not self.detector._model_loaded:
+            self.detector.load_model()
 
         source = self.config.source
         print(f"[Camera] Opening source: {source}")
-        self.cap = cv2.VideoCapture(source)
 
-        if not self.cap.isOpened():
-            raise RuntimeError(f"Cannot open camera source: {source}")
+        # Detect whether the source is a static image file
+        self._is_image_source = (
+            isinstance(source, str)
+            and Path(source).suffix.lower() in IMAGE_EXTS
+        )
 
-        # Apply configured resolution
-        w, h = self.config.resolution
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
-        
-        # Reduce internal buffer size to minimum to avoid lag
-        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        if self._is_image_source:
+            print(f"[Camera] Source is a static image — bypassing VideoCapture.")
+            self.cap = None
+            frame = cv2.imread(str(source))
+            if frame is None:
+                raise RuntimeError(f"Cannot read image file: {source}")
+            self._latest_raw_frame = frame
+        else:
+            self.cap = cv2.VideoCapture(source)
+            if not self.cap.isOpened():
+                raise RuntimeError(f"Cannot open camera source: {source}")
 
-        # Get original video FPS to prevent playing too fast
-        self.fps = self.cap.get(cv2.CAP_PROP_FPS)
-        if not self.fps or self.fps <= 0:
-            self.fps = 30.0
+            # Apply configured resolution
+            w, h = self.config.resolution
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
+            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
+            self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
+            # Get original video FPS
+            self.fps = self.cap.get(cv2.CAP_PROP_FPS)
+            if not self.fps or self.fps <= 0:
+                self.fps = 30.0
+        if self._is_image_source:
+            print(f"[Camera] Source is a static image — using detect_image() mode.")
         self.running = True
-        
+
         # Thread 1: Continuous Frame Capture (Producer)
         self._capture_thread = threading.Thread(target=self._capture_loop, daemon=True)
         self._capture_thread.start()
-        
+
         # Thread 2: Detection and Encoding (Consumer)
         self._process_thread = threading.Thread(target=self._processing_loop, daemon=True)
         self._process_thread.start()
-        
+
         print("[Camera] Stream threads started.")
 
     def stop(self):
@@ -130,6 +150,15 @@ class CameraStream:
 
         while self.running:
             try:
+                if self.paused:
+                    time.sleep(0.1)
+                    continue
+
+                # If it's a static image, the frame is already loaded. Just sleep to keep thread alive.
+                if getattr(self, '_is_image_source', False):
+                    time.sleep(1.0)
+                    continue
+
                 start_time = time.time()
                 
                 if self.cap is None or not self.cap.isOpened():
@@ -139,6 +168,8 @@ class CameraStream:
                 if not ret:
                     if is_file:
                         self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                        # Avoid tight loops if rewind fails
+                        time.sleep(0.05)
                         continue
                     print("[Camera] Failed to read frame. Capture loop exiting.")
                     break
@@ -161,25 +192,53 @@ class CameraStream:
 
     def _processing_loop(self):
         """Background loop that processes the latest available frame."""
+        # For static images: run detect_image() once, then just re-serve the result.
+        # For video/live: run detect() on every frame_interval-th frame.
+        _image_result_cached = False
+
         while self.running:
             frame = None
             with self._lock:
                 if self._latest_raw_frame is not None:
-                    frame = self._latest_raw_frame.copy()  # Copy to avoid race with capture thread
-            
+                    frame = self._latest_raw_frame.copy()
+
             if frame is None:
-                time.sleep(0.1)
+                time.sleep(0.05)
                 continue
 
             self._frame_count += 1
-            
-            # 1. Decide if we should run AI detection or just encode
+
+            # --- Static image mode ---
+            if getattr(self, '_is_image_source', False):
+                if not _image_result_cached:
+                    # Run detect_image() exactly once — all detections are immediately confirmed
+                    try:
+                        self.detector.current_lat = self.config.latitude
+                        self.detector.current_lng = self.config.longitude
+                        result = self.detector.detect_image(frame)
+                    except Exception as e:
+                        print(f"[Camera] detect_image error: {e}")
+                        result = None
+
+                    if result is not None:
+                        with self._lock:
+                            self._latest_result = result
+                            if result.annotated_frame is not None:
+                                _, buf = cv2.imencode(".jpg", result.annotated_frame,
+                                                      [cv2.IMWRITE_JPEG_QUALITY, 90])
+                                self._latest_jpeg = buf.tobytes()
+                        self._handle_notifications(result)
+                        _image_result_cached = True
+                        print(f"[Camera] Image detection done: {result.object_count} objects, severity={result.severity}")
+                # Serve the cached annotated frame continuously
+                time.sleep(0.05)
+                continue
+
+            # --- Video / live mode ---
             is_detection_frame = (self._frame_count % self.config.frame_interval == 0)
-            
+
             if is_detection_frame:
-                # Run full YOLO detection — wrapped so any crash keeps the thread alive
                 try:
-                    # Update detector with current location before processing
                     self.detector.current_lat = self.config.latitude
                     self.detector.current_lng = self.config.longitude
                     result = self.detector.detect(frame)
@@ -194,13 +253,9 @@ class CameraStream:
                             _, buf = cv2.imencode(".jpg", result.annotated_frame,
                                                   [cv2.IMWRITE_JPEG_QUALITY, 80])
                             self._latest_jpeg = buf.tobytes()
-
-                    # Notification logic
                     self._handle_notifications(result)
             else:
-                # Non-detection frame: only encode raw if we have NO annotated
-                # frame yet (first few frames). Otherwise keep showing the last
-                # annotated frame so bounding boxes don't flicker on/off.
+                # Non-detection frame: only encode raw if we have no annotated frame yet
                 with self._lock:
                     if self._latest_jpeg is None:
                         _, buf = cv2.imencode(".jpg", frame,

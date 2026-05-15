@@ -10,8 +10,8 @@ EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Detection settings
-CONFIDENCE_THRESHOLD = 0.25
-FRAME_INTERVAL = 3
+CONFIDENCE_THRESHOLD = 0.20         # Lowered from 0.25 — catch more waste
+FRAME_INTERVAL = 2                  # Process every 2nd frame (was 3)
 CAMERA_SOURCE = os.getenv("CAMERA_SOURCE", 0)
 if str(CAMERA_SOURCE).isdigit():
     CAMERA_SOURCE = int(CAMERA_SOURCE)
@@ -21,36 +21,64 @@ CAMERA_LAT = float(os.getenv("CAMERA_LAT", "21.1458"))
 CAMERA_LNG = float(os.getenv("CAMERA_LNG", "79.0882"))
 
 # Accuracy filters
-MIN_BBOX_AREA_FRACTION = 0.0005  # Object bbox must be >=0.05% of frame area to catch tiny litter
-MIN_CONSECUTIVE_DETECTIONS = 2  # Report after 2 consistent detections
+MIN_BBOX_AREA_FRACTION = 0.0003     # Object bbox must be >=0.03% of frame to catch small litter
+MIN_CONSECUTIVE_DETECTIONS = 1      # Confirm after 1 consistent detection (was 2)
 
-# Per-class confidence overrides (stricter for context-dependent classes)
+# Per-class confidence overrides — lower = more sensitive for that class
 PER_CLASS_CONFIDENCE = {
-    "bottle":       0.20,
-    "cup":          0.20,
-    "bowl":         0.20,
-    "banana":       0.20,
-    "apple":        0.20,
-    "orange":       0.20,
-    "sandwich":     0.20,
-    "hot dog":      0.20,
-    "pizza":        0.20,
-    "cake":         0.20,
-    "carrot":       0.20,
-    "backpack":     0.25,
-    "handbag":      0.25,
-    "suitcase":     0.25,
-    "toilet":       0.30,
-    "refrigerator": 0.30,
-    "sink":         0.30,
-    "microwave":    0.30,
-    "oven":         0.30,
-    "toaster":      0.30,
-    "chair":        0.25,
-    "bird":         0.10,
+    # Common litter (extremely sensitive — these are frequent waste items in messy piles)
+    "bottle":       0.02,
+    "cup":          0.02,
+    "bowl":         0.02,
+    "banana":       0.02,
+    "apple":        0.02,
+    "orange":       0.02,
+    "sandwich":     0.02,
+    "hot dog":      0.02,
+    "pizza":        0.02,
+    "cake":         0.02,
+    "carrot":       0.02,
+    "donut":        0.02,
+    "bird":         0.02,
+    "teddy bear":   0.02,
+    "sports ball":  0.02,
+    # Abandoned items (high sensitivity)
+    "backpack":     0.02,
+    "handbag":      0.02,
+    "suitcase":     0.02,
+    "umbrella":     0.02,
+    # Dumped appliances (somewhat lenient — large objects, easy to confirm)
+    "toilet":       0.25,
+    "refrigerator": 0.25,
+    "sink":         0.25,
+    "microwave":    0.25,
+    "oven":         0.25,
+    "toaster":      0.25,
+    # Furniture
+    "chair":        0.20,
+    "couch":        0.20,
+    "bench":        0.20,
+    # E-waste
+    "cell phone":   0.15,
+    "laptop":       0.20,
+    "tv":           0.20,
+    "keyboard":     0.15,
+    "remote":       0.15,
+    # Custom garbage model classes (very low threshold — model is purpose-built)
     "plastic":      0.10,
     "paper":        0.10,
+    "glass":        0.10,
+    "metal":        0.10,
     "waste":        0.10,
+    "garbage":      0.10,
+    "litter":       0.10,
+    "trash":        0.10,
+    "garbage_pile": 0.10,
+    "plastic_bag":  0.10,
+    "trash_bag":    0.10,
+    "bin":          0.15,
+    # COCO misclassification proxy (birds often = white trash bags)
+    "bird":         0.10,
 }
 
 # YOLO model path — check multiple locations in priority order:
@@ -75,8 +103,8 @@ else:
 # Discarded containers
 CONTAINER_WASTE = {"bowl", "vase"}
 
-# Plastics (including 'bird' as COCO often misclassifies white trash bags as birds)
-PLASTIC_WASTE = {"bottle", "cup", "bird"}
+# Plastics (including 'bird', 'teddy bear', 'sports ball' as COCO often misclassifies white/black trash bags and clumps as these)
+PLASTIC_WASTE = {"bottle", "cup", "bird", "teddy bear", "sports ball"}
 
 # Food litter (commonly found discarded on streets)
 FOOD_WASTE = {"banana", "apple", "orange", "sandwich", "hot dog", "pizza", "cake", "carrot", "donut"}
@@ -125,12 +153,12 @@ GARBAGE_CLASSES = {
     "cardboard", "debris", "overflowing_bin", "trash_bag", "bin"
 }
 
-# Severity thresholds — raised so 1 object alone = LOW (not medium/high)
+# Severity thresholds
 SEVERITY_THRESHOLDS = {
-    "LOW":      (1, 2),
-    "MEDIUM":   (3, 5),
-    "HIGH":     (6, 10),
-    "CRITICAL": (11, float("inf")),
+    "LOW":      (1, 3),
+    "MEDIUM":   (4, 7),
+    "HIGH":     (8, 12),
+    "CRITICAL": (13, float("inf")),
 }
 
 # Server

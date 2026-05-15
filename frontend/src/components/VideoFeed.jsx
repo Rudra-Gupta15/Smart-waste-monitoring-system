@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getVideoFeedUrl, fetchCameraStatus, updateCameraSource, uploadMedia } from '../services/api';
+import { getVideoFeedUrl, fetchCameraStatus, updateCameraSource, uploadMedia, togglePause } from '../services/api';
 import { toast } from 'react-hot-toast';
 
 export default function VideoFeed() {
@@ -9,11 +9,29 @@ export default function VideoFeed() {
   const [newSource, setNewSource] = useState('');
   const [loading, setLoading] = useState(false);
   const [feedKey, setFeedKey] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    fetchCameraStatus().then(setStatus).catch(console.error);
+    fetchCameraStatus().then(s => {
+      setStatus(s);
+      setIsPaused(s.paused || false);
+    }).catch(console.error);
   }, [feedKey]);
+
+  const handleTogglePause = async () => {
+    try {
+      const res = await togglePause();
+      if (res.status === 'success') {
+        setIsPaused(res.paused);
+        toast.success(res.paused ? 'Stream paused' : 'Stream resumed');
+      } else {
+        toast.error('Failed to toggle pause');
+      }
+    } catch (err) {
+      toast.error('Network error toggling pause');
+    }
+  };
 
   const handleUpdateSource = async (e) => {
     e.preventDefault();
@@ -43,6 +61,35 @@ export default function VideoFeed() {
     <div className="bg-white rounded-md overflow-hidden shadow-sm border border-slate-200 h-full flex flex-col">
 
       <div className="px-4 py-2.5 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+        {/* Hidden File Input (Moved out of settings so Change Media button can access it) */}
+        <input 
+          type="file" 
+          accept="video/*,image/*"
+          className="hidden" 
+          ref={fileInputRef}
+          onChange={async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            setLoading(true);
+            toast.loading('Uploading media...', { id: 'media-upload' });
+            try {
+              const res = await uploadMedia(file);
+              if (res.status === 'success') {
+                toast.success('Media uploaded successfully!', { id: 'media-upload' });
+                setFeedKey(prev => prev + 1);
+                setShowSettings(false);
+                setError(false);
+              } else {
+                toast.error(res.message || 'Upload failed', { id: 'media-upload' });
+              }
+            } catch (err) {
+              toast.error('Network error uploading media', { id: 'media-upload' });
+            } finally {
+              setLoading(false);
+              if (fileInputRef.current) fileInputRef.current.value = '';
+            }
+          }}
+        />
         <div className="flex items-center gap-3">
           <h3 className="text-slate-800 font-bold uppercase tracking-widest text-sm">LIVE MONITOR</h3>
           {status && (
@@ -87,34 +134,7 @@ export default function VideoFeed() {
           </form>
           
           <div className="flex items-center gap-2">
-            <input 
-              type="file" 
-              accept="video/*,image/*"
-              className="hidden" 
-              ref={fileInputRef}
-              onChange={async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                setLoading(true);
-                toast.loading('Uploading media...', { id: 'media-upload' });
-                try {
-                  const res = await uploadMedia(file);
-                  if (res.status === 'success') {
-                    toast.success('Media uploaded successfully!', { id: 'media-upload' });
-                    setFeedKey(prev => prev + 1);
-                    setShowSettings(false);
-                    setError(false);
-                  } else {
-                    toast.error(res.message || 'Upload failed', { id: 'media-upload' });
-                  }
-                } catch (err) {
-                  toast.error('Network error uploading media', { id: 'media-upload' });
-                } finally {
-                  setLoading(false);
-                  if (fileInputRef.current) fileInputRef.current.value = '';
-                }
-              }}
-            />
+
             <button 
               type="button"
               disabled={loading}
@@ -134,14 +154,29 @@ export default function VideoFeed() {
       <div className="relative bg-black flex-1 overflow-hidden">
 
         {!error ? (
-          <img
-            key={feedKey}
-            src={`${getVideoFeedUrl()}?t=${feedKey}`}
-            alt="Live waste detection feed"
-            className="w-full h-full object-contain bg-black"
-
-            onError={() => setError(true)}
-          />
+          <>
+            <img
+              key={feedKey}
+              src={`${getVideoFeedUrl()}?t=${feedKey}`}
+              alt="Live waste detection feed"
+              className="w-full h-full object-contain bg-black"
+              onError={() => setError(true)}
+            />
+            <div className="absolute bottom-4 right-4 flex gap-2">
+              <button
+                onClick={handleTogglePause}
+                className="bg-slate-900/80 hover:bg-black/90 backdrop-blur-md text-white px-3 py-1.5 rounded-md text-xs font-bold tracking-wider transition-colors border border-slate-700/50 flex items-center gap-2 shadow-lg"
+              >
+                <span>{isPaused ? '▶ PLAY' : '⏸ PAUSE'}</span>
+              </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="bg-slate-900/80 hover:bg-black/90 backdrop-blur-md text-white px-3 py-1.5 rounded-md text-xs font-bold tracking-wider transition-colors border border-slate-700/50 flex items-center gap-2 shadow-lg"
+              >
+                <span>📁 CHANGE MEDIA</span>
+              </button>
+            </div>
+          </>
         ) : (
           <div className="flex flex-col items-center justify-center h-96 text-gray-500">
             <div className="w-16 h-16 mb-4 border-2 border-gray-600 rounded-none flex items-center justify-center text-2xl">

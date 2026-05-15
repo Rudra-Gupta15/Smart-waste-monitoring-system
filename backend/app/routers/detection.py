@@ -1,13 +1,18 @@
 """
-Detection API — live video feed (MJPEG) and detection events.
+Detection API — live video feed (MJPEG), static image analysis, and detection events.
 """
 
 import asyncio
+import base64
 import json
 import time
 import urllib.request
 import urllib.parse
 
+# pyrefly: ignore [missing-import]
+import cv2
+# pyrefly: ignore [missing-import]
+import numpy as np
 # pyrefly: ignore [missing-import]
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, UploadFile, File
 # pyrefly: ignore [missing-import]
@@ -25,39 +30,105 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
 @router.post("/source")
-def update_camera_source(request: CameraSourceRequest):
+async def update_camera_source(request: CameraSourceRequest):
     """Update the camera source dynamically."""
     if _camera_stream is None:
         return JSONResponse({"status": "error", "message": "Camera stream not initialized"}, status_code=500)
-    
+
     try:
-        _camera_stream.update_source(request.source)
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, _camera_stream.update_source, request.source)
         return {"status": "success", "source": request.source}
     except Exception as e:
-        return JSONResponse({"status": "error", "message": str(e)}, status_code=400)
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
 
 @router.post("/upload-video")
 async def upload_video(file: UploadFile = File(...)):
-    """Upload a video file and set it as the camera source."""
+    """Upload a video/image file and set it as the camera source for detection."""
     if _camera_stream is None:
         return JSONResponse({"status": "error", "message": "Camera stream not initialized"}, status_code=500)
 
     try:
-        file_path = UPLOAD_DIR / file.filename
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        
-        # Update camera source to the uploaded video file
-        _camera_stream.update_source(str(file_path.absolute()))
-        
+        # Sanitize filename to prevent path traversal on Windows
+        safe_name = Path(file.filename).name if file.filename else "upload"
+        file_path = UPLOAD_DIR / safe_name
+
+        # Write file to disk asynchronously
+        contents = await file.read()
+        file_path.write_bytes(contents)
+
+        # Run blocking update_source() in a thread so we don't block the event loop.
+        # Without this, model stop/start (~3-10s) would freeze all other requests
+        # and cause the Vite proxy to return 400/504 errors.
+        abs_path = str(file_path.absolute())
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, _camera_stream.update_source, abs_path)
+
         return {
-            "status": "success", 
-            "message": "Video uploaded and source updated",
-            "filename": file.filename,
-            "path": str(file_path)
+            "status": "success",
+            "message": "Media uploaded and source updated",
+            "filename": safe_name,
+            "path": abs_path,
         }
     except Exception as e:
+        print(f"[API] /upload-video error: {e}")
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+@router.post("/detect-image")
+async def detect_image_endpoint(file: UploadFile = File(...)):
+    """
+    Detect waste in a static uploaded image.
+    Bypasses temporal tracking — all confident detections are immediately
+    confirmed and returned, plus a base64-encoded annotated JPEG.
+    """
+    if _camera_stream is None:
+        return JSONResponse(
+            {"status": "error", "message": "Detector not initialized. Start the server first."},
+            status_code=500,
+        )
+
+    try:
+        # Decode the uploaded image into an OpenCV frame
+        raw_bytes = await file.read()
+        np_arr = np.frombuffer(raw_bytes, np.uint8)
+        frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+        if frame is None:
+            return JSONResponse(
+                {"status": "error", "message": "Could not decode image. Make sure it is a valid JPEG/PNG."},
+                status_code=400,
+            )
+
+        # Run static-image detection (no tracking, immediate confirmation)
+        result = _camera_stream.detector.detect_image(frame)
+
+        # Encode the annotated frame as a base64 JPEG for inline display
+        annotated_b64 = None
+        if result.annotated_frame is not None:
+            _, buf = cv2.imencode(".jpg", result.annotated_frame,
+                                  [cv2.IMWRITE_JPEG_QUALITY, 90])
+            annotated_b64 = "data:image/jpeg;base64," + base64.b64encode(buf.tobytes()).decode("utf-8")
+
+        return {
+            "status": "success",
+            "severity": result.severity,
+            "object_count": result.object_count,
+            "annotated_image": annotated_b64,
+            "detections": [
+                {
+                    "id": d.id,
+                    "class_name": d.class_name,
+                    "category": d.category,
+                    "confidence": round(d.confidence, 3),
+                    "bbox": d.bbox,
+                    "types": d.types_list,
+                }
+                for d in result.detections
+            ],
+        }
+    except Exception as e:
+        print(f"[API] /detect-image error: {e}")
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
 
@@ -202,7 +273,17 @@ def camera_status():
         "active": _camera_stream.running,
         "source": str(_camera_stream.config.source),
         "frame_count": _camera_stream._frame_count,
+        "paused": getattr(_camera_stream, 'paused', False),
     }
+
+@router.post("/toggle-pause")
+def toggle_pause():
+    """Toggle the paused state of the camera stream."""
+    if _camera_stream is None:
+        return JSONResponse({"status": "error", "message": "Camera stream not initialized"}, status_code=500)
+    
+    _camera_stream.paused = not getattr(_camera_stream, 'paused', False)
+    return {"status": "success", "paused": _camera_stream.paused}
 
 
 @router.websocket("/ws/events")
