@@ -201,14 +201,14 @@ export default function WorkerPage() {
       <div className="min-h-screen bg-white flex flex-col md:flex-row overflow-hidden">
         <Toaster position="top-center" />
         {/* Left Panel: Operational Branding */}
-        <div className="md:w-[45%] bg-slate-900 relative flex flex-col justify-center p-12 lg:p-20 overflow-hidden border-b-[6px] md:border-b-0 md:border-r-[6px] border-blue-600">
-          <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
+        <div className="md:w-[45%] bg-white relative flex flex-col justify-center p-12 lg:p-20 overflow-hidden border-b-[6px] md:border-b-0 md:border-l-[6px] border-black">
+          <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000000 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
           <div className="relative z-10">
-            <div className="w-12 h-12 bg-white text-slate-900 flex items-center justify-center font-black text-xl mb-8 shadow-2xl">W</div>
-            <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.4em] mb-3">Nagpur Municipal Corporation</p>
-            <h1 className="text-4xl lg:text-6xl font-black text-white tracking-tighter leading-none mb-6">WELCOME<br />BACK.</h1>
-            <div className="w-12 h-1 bg-blue-600 mb-8"></div>
-            <p className="text-xs text-slate-400 font-bold max-w-xs leading-relaxed uppercase tracking-wider">Secure access terminal for field operations and waste management logistics.</p>
+            <div className="w-12 h-12 bg-slate-900 text-white flex items-center justify-center font-black text-xl mb-8 shadow-2xl">W</div>
+            <p className="text-[10px] font-black text-black uppercase tracking-[0.4em] mb-3">Nagpur Municipal Corporation</p>
+            <h1 className="text-4xl lg:text-6xl font-black text-slate-900 tracking-tighter leading-none mb-6">WELCOME<br />BACK.</h1>
+            <div className="w-12 h-1 bg-black mb-8"></div>
+            <p className="text-xs text-slate-500 font-bold max-w-xs leading-relaxed uppercase tracking-wider">Secure access terminal for field operations and waste management logistics.</p>
           </div>
         </div>
         {/* Right Panel: Authentication Form */}
@@ -240,7 +240,7 @@ export default function WorkerPage() {
                 onClick={() => { if (tempWorker) setSelectedWorker(tempWorker); }}
                 disabled={!tempWorker}
                 className={`w-full py-5 text-[11px] font-black uppercase tracking-[0.4em] transition-all shadow-xl
-                  ${tempWorker ? 'bg-blue-600 text-white hover:bg-slate-900 active:scale-[0.98]' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}
+                  ${tempWorker ? 'bg-black text-white hover:bg-slate-800 active:scale-[0.98]' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}
                 `}
               >
                 LOGIN
@@ -348,8 +348,8 @@ export default function WorkerPage() {
                     statusClass = 'text-green-600 bg-green-100 border-green-200';
                   } else if (index === targetIndex) {
                     status = isPaused ? 'STOPPED' : 'ARRIVING';
-                    boxClass = 'bg-blue-50 border-blue-400 ring-2 ring-blue-200 ring-offset-1';
-                    statusClass = 'text-blue-600 bg-blue-100 border-blue-200 animate-pulse';
+                    boxClass = 'bg-slate-50 border-slate-900 ring-2 ring-slate-200 ring-offset-1';
+                    statusClass = 'text-slate-900 bg-slate-100 border-slate-200 animate-pulse';
                   }
 
                   return (
@@ -377,8 +377,8 @@ export default function WorkerPage() {
             <div className="flex items-center justify-between">
               <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.3em]">Row 03 // Real-time AI Missions</h3>
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-blue-500 rounded-none animate-pulse"></span>
-                <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest">Active Link</span>
+                <span className="w-2 h-2 bg-black rounded-none animate-pulse"></span>
+                <span className="text-[9px] font-black text-black uppercase tracking-widest">Active Link</span>
               </div>
             </div>
           )}
@@ -483,20 +483,16 @@ function WorkerTicketCard({ ticket, startTime, onAccept, onComplete }) {
         <div>
           <h3 className="text-[14px] font-black text-slate-900 leading-tight mb-2 uppercase tracking-tight line-clamp-1">{ticket.location.address}</h3>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black bg-blue-50 text-blue-600 px-2 py-0.5 rounded-none uppercase tracking-widest">{ticket.location.zone} Sector</span>
+            <span className="text-[10px] font-black bg-slate-100 text-black px-2 py-0.5 rounded-none uppercase tracking-widest">{ticket.location.zone} Sector</span>
             <span className="text-[10px] font-black text-slate-300">|</span>
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Lat: {ticket.location.lat.toFixed(4)} Lng: {ticket.location.lng.toFixed(4)}</span>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-slate-50 p-4 border border-slate-100">
+        <div className="grid grid-cols-1 gap-4">
+          <div className="bg-slate-50 p-4 border border-slate-100 text-center">
             <p className="text-[9px] text-slate-400 font-black uppercase mb-1.5 tracking-[0.1em]">Target Load</p>
             <p className="text-xl font-black text-slate-800 leading-none">{ticket.object_count}<span className="text-[10px] text-slate-400 ml-1 font-bold">UNITS</span></p>
-          </div>
-          <div className="bg-slate-50 p-4 border border-slate-100">
-            <p className="text-[9px] text-slate-400 font-black uppercase mb-1.5 tracking-[0.1em]">AI Confidence</p>
-            <p className="text-xl font-black text-slate-800 leading-none">{(90 + Math.random() * 8).toFixed(1)}<span className="text-[10px] text-slate-400 ml-1 font-bold">%</span></p>
           </div>
         </div>
 
@@ -517,23 +513,23 @@ function WorkerTicketCard({ ticket, startTime, onAccept, onComplete }) {
         {(ticket.status === 'OPEN' || ticket.status === 'ASSIGNED') && (
           <button
             onClick={onAccept}
-            className="w-full bg-slate-900 text-white text-[11px] font-black py-5 hover:bg-blue-600 transition-all uppercase tracking-[0.3em]"
+            className="w-full bg-slate-900 text-white text-[11px] font-black py-5 hover:bg-black transition-all uppercase tracking-[0.3em]"
           >
             INITIALIZE MISSION
           </button>
         )}
 
         {ticket.status === 'IN_PROGRESS' && (
-          <div className="p-6 bg-blue-50/50">
+          <div className="p-6 bg-slate-50">
             {!canComplete ? (
               <div className="space-y-3">
-                <div className="flex justify-between text-[10px] font-black text-blue-600 uppercase tracking-widest">
+                <div className="flex justify-between text-[10px] font-black text-black uppercase tracking-widest">
                   <span className="animate-pulse">Processing...</span>
                   <span>{Math.round(progress)}%</span>
                 </div>
                 <div className="h-2 w-full bg-slate-200 rounded-none overflow-hidden">
                   <div
-                    className="h-full bg-blue-600 transition-all duration-100"
+                    className="h-full bg-black transition-all duration-100"
                     style={{ width: `${progress}%` }}
                   ></div>
                 </div>

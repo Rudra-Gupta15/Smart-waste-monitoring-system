@@ -42,7 +42,11 @@ from backend.app.config import (
     MIN_BBOX_AREA_FRACTION,
     MIN_CONSECUTIVE_DETECTIONS,
     get_area_name,
+    USE_CLASSIFIER,
+    CLASSIFIER_MODEL_PATH,
+    CLASSIFIER_CATEGORY_MAP,
 )
+from backend.ai.classifier import WasteClassifier
 
 
 @dataclass
@@ -123,6 +127,11 @@ class WasteDetector:
         self.current_lng = 0.0
         self.max_missed = 3   # frames before dropping a lost track (was 5)
         self.min_streak = 1   # minimum consecutive detections to confirm (was 2)
+
+        # Secondary classifier (Two-Stage segregation pipeline)
+        self.classifier = None
+        if USE_CLASSIFIER:
+            self.classifier = WasteClassifier(str(CLASSIFIER_MODEL_PATH))
 
     # ------------------------------------------------------------------
     # Model loading
@@ -261,17 +270,40 @@ class WasteDetector:
             if frame_area > 0 and bbox_area / frame_area < MIN_BBOX_AREA_FRACTION:
                 continue
 
-            # Human Shield Filter: discard garbage detections that heavily
-            # overlap with a person (model hallucinates on clothing/bags)
+            category = WASTE_CATEGORY_MAP.get(class_name, "Misc Waste")
+
+            # Human Shield & In-Use Filter: discard garbage detections that heavily
+            # overlap with a person, or furniture that is being used by a person.
             if not is_person:
-                is_on_human = any(
-                    self._calculate_ioa([x1, y1, x2, y2], pb) > 0.5
-                    for pb in person_boxes
-                )
+                is_on_human = False
+                for pb in person_boxes:
+                    ioa = self._calculate_ioa([x1, y1, x2, y2], pb)
+                    
+                    if category == "Furniture Waste":
+                        iou = self._calculate_iou([x1, y1, x2, y2], pb)
+                        # If a person significantly overlaps with furniture, it's in use
+                        if iou > 0.05 or ioa > 0.1:
+                            is_on_human = True
+                            break
+                    elif ioa > 0.5:
+                        # For general items (like clothes/bags), require heavy overlap
+                        is_on_human = True
+                        break
+
                 if is_on_human:
                     continue
+            
+            if not is_person:
+                # Two-Stage Inference: sub-classify generic waste boxes using our custom CNN
+                bbox_ints = [int(x1), int(y1), int(x2), int(y2)]
+                pred_cls, pred_cat, pred_conf = self._subclassify_crop(
+                    frame, bbox_ints, class_name, category
+                )
+                if pred_conf > 0.0:
+                    class_name = pred_cls
+                    category = pred_cat
+                    conf = pred_conf
 
-            category = WASTE_CATEGORY_MAP.get(class_name, "Misc Waste")
             current_detections.append(Detection(
                 class_name=class_name,
                 confidence=conf,
@@ -286,7 +318,7 @@ class WasteDetector:
         person_dets = [d for d in current_detections if d.class_name == "person"]
 
         if len(waste_dets) >= 2:
-            waste_dets = self._cluster_detections(waste_dets, margin=350, min_cluster_size=2)
+            waste_dets = self._cluster_detections(waste_dets, margin=80, min_cluster_size=2)
 
         current_detections = person_dets + waste_dets
 
@@ -295,6 +327,24 @@ class WasteDetector:
             self._update_tracks(current_detections)
             confirmed = [t for t in self.tracked_objects if t.is_confirmed and t.missed_count == 0]
             display   = [t for t in self.tracked_objects if t.missed_count == 0]
+
+        # Scene-level garbage pile detection — supplements YOLO for large piles
+        # that fill the frame and have no distinct individual object boundaries.
+        scene_pile = self._detect_scene_garbage_pile(frame, frame_h, frame_w, confirmed)
+        if scene_pile is not None:
+            has_overlap = any(
+                d.class_name == "garbage_pile" and self._calculate_iou(d.bbox, scene_pile.bbox) > 0.3
+                for d in confirmed
+            )
+            if not has_overlap:
+                scene_pile.id = self.next_id
+                self.next_id += 1
+                # Enrich types_list with any YOLO-detected classes in the same frame
+                inner = [d.class_name for d in confirmed if d.category != "Person"]
+                if inner:
+                    scene_pile.types_list = list(set(inner))[:5]
+                confirmed.append(scene_pile)
+                display.append(scene_pile)
 
         severity = self._assess_severity(confirmed)
         annotated = self._annotate_frame(frame.copy(), display, severity, frame_w, frame_h)
@@ -379,12 +429,37 @@ class WasteDetector:
             if frame_area > 0 and bbox_area / frame_area < MIN_BBOX_AREA_FRACTION:
                 continue
 
-            # Human Shield Filter
-            if not is_person:
-                if any(self._calculate_ioa([x1, y1, x2, y2], pb) > 0.5 for pb in person_boxes):
-                    continue
-
             category = WASTE_CATEGORY_MAP.get(class_name, "Misc Waste")
+
+            # Human Shield & In-Use Filter
+            if not is_person:
+                is_on_human = False
+                for pb in person_boxes:
+                    ioa = self._calculate_ioa([x1, y1, x2, y2], pb)
+                    
+                    if category == "Furniture Waste":
+                        iou = self._calculate_iou([x1, y1, x2, y2], pb)
+                        if iou > 0.05 or ioa > 0.1:
+                            is_on_human = True
+                            break
+                    elif ioa > 0.5:
+                        is_on_human = True
+                        break
+
+                if is_on_human:
+                    continue
+            
+            if not is_person:
+                # Two-Stage Inference: sub-classify generic waste boxes using our custom CNN
+                bbox_ints = [int(x1), int(y1), int(x2), int(y2)]
+                pred_cls, pred_cat, pred_conf = self._subclassify_crop(
+                    frame, bbox_ints, class_name, category
+                )
+                if pred_conf > 0.0:
+                    class_name = pred_cls
+                    category = pred_cat
+                    conf = pred_conf
+
             raw_detections.append(Detection(
                 class_name=class_name,
                 confidence=conf,
@@ -401,7 +476,20 @@ class WasteDetector:
         person_dets = [d for d in raw_detections if d.class_name == "person"]
 
         if len(waste_dets) >= 2:
-            waste_dets = self._cluster_detections(waste_dets, margin=350, min_cluster_size=2)
+            waste_dets = self._cluster_detections(waste_dets, margin=80, min_cluster_size=2)
+
+        # Scene-level garbage pile detection — supplements YOLO for large piles
+        scene_pile = self._detect_scene_garbage_pile(frame, frame_h, frame_w, waste_dets)
+        if scene_pile is not None:
+            has_overlap = any(
+                d.class_name == "garbage_pile" and self._calculate_iou(d.bbox, scene_pile.bbox) > 0.3
+                for d in waste_dets
+            )
+            if not has_overlap:
+                inner = [d.class_name for d in waste_dets]
+                if inner:
+                    scene_pile.types_list = list(set(inner))[:5]
+                waste_dets.append(scene_pile)
 
         # Clean up IDs
         for i, det in enumerate(person_dets + waste_dets):
@@ -474,12 +562,33 @@ class WasteDetector:
         for c in clusters:
             if len(c["dets"]) >= min_cluster_size:
                 types = list(set(d.class_name for d in c["dets"]))
+                
+                # Determine category: if any constituent has a specific waste category (other than general Garbage/Misc Waste),
+                # use the category of the constituent with the highest severity/priority.
+                # Priority rank: E-Waste > Food Waste > Glass Waste > Plastic Waste > Metal Waste > Paper/Stationery > Abandoned Item > Household Waste > Furniture Waste > Container/Utensil > Misc Waste > Garbage
+                category_priority = [
+                    "E-Waste", "Food Waste", "Glass Waste", "Plastic Waste",
+                    "Metal Waste", "Paper/Stationery", "Abandoned Item",
+                    "Household Waste", "Furniture Waste", "Container/Utensil",
+                    "Misc Waste", "Garbage"
+                ]
+                
+                # Find all unique categories of constituent detections
+                constituent_categories = set(d.category for d in c["dets"])
+                
+                # Select the highest priority category present
+                selected_category = "Garbage"
+                for cat in category_priority:
+                    if cat in constituent_categories:
+                        selected_category = cat
+                        break
+                
                 pile = Detection(
                     class_name="garbage_pile",
                     confidence=max(d.confidence for d in c["dets"]),
                     bbox=c["bbox"],
-                    category="Garbage",
-                    color=CATEGORY_COLORS.get("Garbage", CATEGORY_COLORS["default"]),
+                    category=selected_category,
+                    color=CATEGORY_COLORS.get(selected_category, CATEGORY_COLORS["default"]),
                     streak=99,
                     is_confirmed=True,
                     types_list=types,
@@ -504,12 +613,13 @@ class WasteDetector:
             best_match = None
 
             for i, det in enumerate(current_detections):
-                if det.class_name == track.class_name:
-                    iou = self._calculate_iou(track.bbox, det.bbox)
-                    # Lowered match threshold from 0.3 → 0.2 for better tracking
-                    if iou > 0.2 and iou > best_iou:
-                        best_iou = iou
-                        best_match = i
+                iou = self._calculate_iou(track.bbox, det.bbox)
+                # If class name matches, allow a lower IoU threshold. If class changed (refined or fluctuated),
+                # require a higher IoU (0.45) to ensure it is the same physical object.
+                min_iou = 0.2 if det.class_name == track.class_name else 0.45
+                if iou > min_iou and iou > best_iou:
+                    best_iou = iou
+                    best_match = i
 
             if best_match is not None:
                 match = current_detections.pop(best_match)
@@ -521,6 +631,9 @@ class WasteDetector:
                 track.bbox = match.bbox
                 track.confidence = match.confidence
                 track.types_list = match.types_list
+                track.class_name = match.class_name
+                track.category = match.category
+                track.color = match.color
                 track.streak += 1
                 track.missed_count = 0
 
@@ -569,17 +682,187 @@ class WasteDetector:
         area_obj = (x2 - x1) * (y2 - y1)
         return inter / area_obj if area_obj > 0 else 0.0
 
+    def _detect_scene_garbage_pile(
+        self,
+        frame: np.ndarray,
+        frame_h: int,
+        frame_w: int,
+        existing_dets: List[Detection],
+    ) -> Optional[Detection]:
+        """
+        Grid-based scene-level garbage pile detector.
+
+        Divides the frame into an 8×8 grid and evaluates each cell independently.
+        A cell qualifies as 'garbage' only if it passes ALL of:
+          1. Edge density  ≥ 8%           (chaotic texture, not flat surface)
+          2. Color entropy ≥ 1.5          (diverse hues, not uniform sky/road/wall)
+          3. Hue concentration top-3 ≤ 65% (no dominant brand colors, not a truck/logo)
+          4. Garbage-palette ratio ≥ 20%  (earthy browns, dirty greys, dark/ash — not bright logos)
+
+        The output bbox is the TIGHT bounding box of only the qualifying cells,
+        NOT an inflated morphological mask. This gives precise, localized detection.
+        """
+        if frame_h < 100 or frame_w < 100:
+            return None
+
+        # --- Preprocessing ---
+        gray    = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+        edges   = cv2.Canny(blurred, 40, 120)
+
+        hsv      = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        hue_chan = hsv[:, :, 0]
+        sat_chan = hsv[:, :, 1]
+        val_chan = hsv[:, :, 2]
+
+        # --- Grid setup ---
+        GRID_ROWS, GRID_COLS = 8, 8
+        cell_h = frame_h // GRID_ROWS
+        cell_w = frame_w // GRID_COLS
+        if cell_h < 20 or cell_w < 20:
+            return None
+
+        cell_scores = np.zeros((GRID_ROWS, GRID_COLS), dtype=np.float32)
+
+        for r in range(GRID_ROWS):
+            for c in range(GRID_COLS):
+                r1, r2 = r * cell_h, min(frame_h, (r + 1) * cell_h)
+                c1, c2 = c * cell_w, min(frame_w, (c + 1) * cell_w)
+
+                cell_edges = edges[r1:r2, c1:c2]
+                cell_hue   = hue_chan[r1:r2, c1:c2].ravel()
+                cell_sat   = sat_chan[r1:r2, c1:c2].ravel()
+                cell_val   = val_chan[r1:r2, c1:c2].ravel()
+
+                n_px = len(cell_hue)
+                if n_px == 0:
+                    continue
+
+                # ── Filter 1: edge density ──────────────────────────────────
+                edge_density = float(np.sum(cell_edges > 0)) / n_px
+                if edge_density < 0.08:
+                    continue   # Flat / featureless (sky, clean road)
+
+                # ── Filter 2: color entropy ─────────────────────────────────
+                hist, _ = np.histogram(cell_hue, bins=12, range=(0, 180))
+                hist_norm = hist / (hist.sum() + 1e-8)
+                entropy = float(-np.sum(hist_norm * np.log2(hist_norm + 1e-8)))
+                if entropy < 1.5:
+                    continue   # Too few colors = uniform surface
+
+                # ── Filter 3: hue concentration (rejects branded surfaces) ──
+                # If the top-3 hue bins own > 65% of pixels, this is a painted
+                # or branded surface (truck body, colorful wall, billboard).
+                top3_concentration = float(np.sort(hist_norm)[-3:].sum())
+                if top3_concentration > 0.65:
+                    continue
+
+                # ── Filter 4: garbage-palette pixel ratio ───────────────────
+                # Garbage piles contain: earthy browns, dirty olive greens,
+                # grey/dirty neutrals, and dark/ash areas.
+                # Truck logos, clean walls, and vehicles fail this check because
+                # they have bright, saturated brand colors, not earthy dirty tones.
+                brown = (cell_hue >= 5)  & (cell_hue <= 30) & (cell_sat >= 40) & (cell_val >= 30) & (cell_val <= 160)
+                olive = (cell_hue >= 30) & (cell_hue <= 75) & (cell_sat >= 25) & (cell_val >= 20) & (cell_val <= 130)
+                grey  = (cell_sat < 60)  & (cell_val >= 30) & (cell_val <= 200)
+                dark  = cell_val < 55    # Ash, burnt waste, deep shadow
+                garbage_palette_ratio = float(np.sum(brown | olive | grey | dark)) / n_px
+                if garbage_palette_ratio < 0.20:
+                    continue   # Not enough dirty/earthy colors → not garbage
+
+                # ── Cell score ──────────────────────────────────────────────
+                score = (
+                    min(1.0, edge_density / 0.30)                   * 0.35 +
+                    min(1.0, max(0.0, entropy - 1.5) / 2.0)         * 0.35 +
+                    min(1.0, garbage_palette_ratio / 0.50)          * 0.30
+                )
+                cell_scores[r, c] = score
+
+        # --- Require minimum qualifying cells ---
+        CELL_THRESHOLD = 0.42
+        garbage_mask   = cell_scores > CELL_THRESHOLD
+        n_garbage      = int(np.sum(garbage_mask))
+        if n_garbage < 3:
+            return None
+
+        # --- Tight bounding box: only the qualifying cells, nothing extra ---
+        garbage_rows = np.where(garbage_mask.any(axis=1))[0]
+        garbage_cols = np.where(garbage_mask.any(axis=0))[0]
+        min_r, max_r = int(garbage_rows.min()), int(garbage_rows.max())
+        min_c, max_c = int(garbage_cols.min()), int(garbage_cols.max())
+
+        px1 = min_c * cell_w
+        py1 = min_r * cell_h
+        px2 = min((max_c + 1) * cell_w, frame_w - 1)
+        py2 = min((max_r + 1) * cell_h, frame_h - 1)
+
+        # --- Final region verification ---
+        region_edges = edges[py1:py2, px1:px2]
+        region_hue   = hue_chan[py1:py2, px1:px2].ravel()
+        n_region = len(region_hue)
+        if n_region == 0:
+            return None
+
+        final_edge_density = float(np.sum(region_edges > 0)) / n_region
+        hist2, _ = np.histogram(region_hue, bins=18, range=(0, 180))
+        hist2_norm = hist2 / (hist2.sum() + 1e-8)
+        final_entropy = float(-np.sum(hist2_norm * np.log2(hist2_norm + 1e-8)))
+        mean_cell_score = float(np.mean(cell_scores[garbage_mask]))
+
+        overall_score = (
+            min(1.0, n_garbage / 12.0)              * 0.25 +
+            min(1.0, final_entropy / 3.5)           * 0.35 +
+            min(1.0, final_edge_density / 0.20)     * 0.25 +
+            mean_cell_score                         * 0.15
+        )
+        if overall_score < 0.45:
+            return None
+
+        confidence = min(0.92, 0.35 + overall_score * 0.60)
+        print(
+            f"[Detector] Scene pile: cells={n_garbage}/{GRID_ROWS*GRID_COLS}, "
+            f"bbox=[{px1},{py1},{px2},{py2}], entropy={final_entropy:.2f}, "
+            f"edge={final_edge_density:.2f}, score={overall_score:.2f}, conf={confidence:.2f}"
+        )
+
+        return Detection(
+            class_name="garbage_pile",
+            confidence=confidence,
+            bbox=[px1, py1, px2, py2],
+            category="Garbage",
+            color=CATEGORY_COLORS.get("Garbage", CATEGORY_COLORS["default"]),
+            streak=99,
+            is_confirmed=True,
+            types_list=["mixed waste"],
+        )
+
     def _assess_severity(self, detections: List[Detection]) -> str:
-        """Map confirmed detection count to a severity level."""
+        """Map confirmed detection count to a severity level.
+        
+        A garbage_pile detection (whether from clustering or scene analysis)
+        is always escalated to at least MEDIUM, since it represents a large
+        uncontained mass of waste that needs urgent attention.
+        """
         waste_detections = [d for d in detections if d.category != "Person"]
         count = len(waste_detections)
 
         if count == 0:
             return "NONE"
+
+        severity = "CRITICAL"
         for level, (lo, hi) in SEVERITY_THRESHOLDS.items():
             if lo <= count <= hi:
-                return level
-        return "CRITICAL"
+                severity = level
+                break
+
+        # Escalate: garbage pile = always at least MEDIUM
+        has_pile = any(d.class_name == "garbage_pile" for d in waste_detections)
+        if has_pile:
+            order = ["NONE", "LOW", "MEDIUM", "HIGH", "CRITICAL"]
+            if order.index(severity) < order.index("MEDIUM"):
+                severity = "MEDIUM"
+
+        return severity
 
     def _annotate_frame(
         self,
@@ -642,3 +925,45 @@ class WasteDetector:
                     cv2.FONT_HERSHEY_SIMPLEX, 0.62, sev_color, 2, cv2.LINE_AA)
 
         return frame
+
+    def _subclassify_crop(
+        self,
+        frame: np.ndarray,
+        bbox: List[int],
+        current_class: str,
+        current_category: str
+    ) -> tuple:
+        """
+        Extract the cropped bounding box, check if classifier is enabled/loaded,
+        and predict the fine-grained category if it is a waste item.
+        """
+        if self.classifier and not self.classifier._model_loaded:
+            # Dynamically try to reload the classifier if training just finished
+            self.classifier.load_model()
+
+        if not self.classifier or not self.classifier._model_loaded:
+            return current_class, current_category, 0.0
+
+        x1, y1, x2, y2 = bbox
+        h, w = frame.shape[:2]
+        cx1 = max(0, min(int(x1), w - 1))
+        cy1 = max(0, min(int(y1), h - 1))
+        cx2 = max(0, min(int(x2), w - 1))
+        cy2 = max(0, min(int(y2), h - 1))
+
+        if cx2 <= cx1 or cy2 <= cy1:
+            return current_class, current_category, 0.0
+
+        crop_img = frame[cy1:cy2, cx1:cx2]
+        pred = self.classifier.predict(crop_img)
+        if pred:
+            pred_class, pred_conf = pred
+            # Dynamic thresholding: standard guess among 10 classes is 10%.
+            # We use 0.25 for general classes, and 0.20 specifically for hazardous E-Waste (battery)
+            # to make sure critical items are identified even with moderate confidence.
+            threshold = 0.20 if pred_class == "battery" else 0.25
+            if pred_conf > threshold:
+                mapped_cat = CLASSIFIER_CATEGORY_MAP.get(pred_class, current_category)
+                return pred_class, mapped_cat, pred_conf
+
+        return current_class, current_category, 0.0

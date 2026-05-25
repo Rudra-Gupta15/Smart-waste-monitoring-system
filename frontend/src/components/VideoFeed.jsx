@@ -6,7 +6,6 @@ export default function VideoFeed() {
   const [error, setError] = useState(false);
   const [status, setStatus] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
-  const [newSource, setNewSource] = useState('');
   const [loading, setLoading] = useState(false);
   const [feedKey, setFeedKey] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -33,25 +32,20 @@ export default function VideoFeed() {
     }
   };
 
-  const handleUpdateSource = async (e) => {
-    e.preventDefault();
-    if (!newSource.trim()) return;
-    
+  const handleSwitchToLive = async () => {
     setLoading(true);
     try {
-      // Try to parse as int if possible
-      const sourceVal = isNaN(newSource) ? newSource : parseInt(newSource);
-      const res = await updateCameraSource(sourceVal);
+      const res = await updateCameraSource(0);
       if (res.status === 'success') {
-        toast.success(`Camera updated to: ${newSource}`);
+        toast.success('Switched to Live Camera');
         setFeedKey(prev => prev + 1);
         setShowSettings(false);
         setError(false);
       } else {
-        toast.error(res.message || 'Failed to update camera');
+        toast.error(res.message || 'Failed to connect to Live Camera');
       }
     } catch (err) {
-      toast.error('Network error updating camera');
+      toast.error('Network error switching to Live Camera');
     } finally {
       setLoading(false);
     }
@@ -115,38 +109,31 @@ export default function VideoFeed() {
       </div>
 
       {showSettings && (
-        <div className="p-4 bg-slate-50 border-b border-slate-200 backdrop-blur-sm">
-          <form onSubmit={handleUpdateSource} className="flex gap-2 mb-3">
-            <input 
-              type="text" 
-              placeholder="Source (0, 1, or URL)"
-              value={newSource}
-              onChange={(e) => setNewSource(e.target.value)}
-              className="flex-1 bg-white border border-slate-200 rounded-md px-3 py-1.5 text-sm text-slate-800 focus:outline-none focus:border-green-500 shadow-sm"
-            />
+        <div className="p-4 bg-slate-50 border-b border-slate-200 backdrop-blur-sm flex flex-col gap-3">
+          <div className="flex gap-2">
             <button 
-              type="submit"
+              type="button"
               disabled={loading}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
+              onClick={handleSwitchToLive}
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-md text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {loading ? 'Updating...' : 'Switch'}
+              <span>📹</span> Go Live (Webcam Feed)
             </button>
-          </form>
+          </div>
           
           <div className="flex items-center gap-2">
-
             <button 
               type="button"
               disabled={loading}
               onClick={() => fileInputRef.current?.click()}
-              className="flex-1 bg-slate-800 hover:bg-slate-900 text-white px-4 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-md text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
             >
               <span>📁</span> Upload Media for Detection
             </button>
           </div>
           
-          <p className="text-[10px] text-slate-400 mt-2">
-            * Use 0/1 for local webcams, enter DroidCam/IP URL, or upload a video/image file.
+          <p className="text-[10px] text-slate-400">
+            * Stream directly from your local webcam (Live Camera) or upload a video/image file for detection.
           </p>
         </div>
       )}
@@ -159,7 +146,7 @@ export default function VideoFeed() {
               key={feedKey}
               src={`${getVideoFeedUrl()}?t=${feedKey}`}
               alt="Live waste detection feed"
-              className="w-full h-full object-contain bg-black"
+              className="absolute inset-0 w-full h-full object-contain bg-black"
               onError={() => setError(true)}
             />
             <div className="absolute bottom-4 right-4 flex gap-2">

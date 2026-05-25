@@ -1,82 +1,155 @@
-# Smart Waste Management System 🗑️🤖
+# Smart Waste Management System (SWMS) 🗑️🤖
 
-An AI-powered urban waste detection and monitoring system that leverages computer vision to identify, track, and report discarded garbage in real-time.
+### AI-Powered Urban Waste Monitoring & Analytics Platform
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![React 18](https://img.shields.io/badge/React-18-blue.svg)](https://reactjs.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC.svg)](https://tailwindcss.com/)
+[![NVIDIA Jetson Optimized](https://img.shields.io/badge/NVIDIA-Jetson%20Orin-green.svg)](https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/)
+
+---
 
 ## 🌟 Overview
 
-This system is designed to automate the detection of waste in public spaces. Using **YOLOv8**, it identifies objects typically found in litter (bottles, containers, household waste) and assesses the severity of the situation based on object count and persistence.
+The **Smart Waste Management System (SWMS)** is a high-fidelity, AI-driven platform designed to revolutionize urban sanitation. By leveraging computer vision (YOLOv8), real-time data fusion, and a "Cyber-Ops" styled dashboard, the system automates waste detection, vehicle monitoring, and maintenance ticketing with zero human intervention.
 
-### Key Features
-- **Real-time Detection**: Processes video feeds from webcams, RTSP streams, or local video files.
-- **Intelligent Tracking**: Uses IoU (Intersection over Union) tracking to prevent duplicate detections and ensure object persistence.
-- **Severity Assessment**: Automatically classifies detection zones from "LOW" to "CRITICAL" based on waste volume.
-- **Automated Ticketing**: Integrated with Supabase to generate maintenance tickets when high levels of waste are detected.
-- **Interactive Dashboard**: A modern web interface to monitor live feeds, view statistics, and manage alerts.
+Designed for scalability, the system targets deployment on edge devices like the **NVIDIA Jetson Orin Nano**, making it suitable for vehicle-mounted cameras and fixed urban CCTV installations.
 
-## 🛠️ Tech Stack
+---
 
-- **Backend**: Python, FastAPI, OpenCV, Ultralytics (YOLOv8), PyTorch.
-- **Frontend**: React (Vite), CSS3 (Modern Classical Editorial design).
-- **Database/Auth**: Supabase.
-- **Deployment**: Local dev server (npm/uvicorn).
+## 🚀 Key Features
+
+- **🧠 Edge-AI Detection**: Real-time object detection using YOLOv8, optimized with TensorRT for high-FPS inference on NVIDIA hardware.
+- **🛰️ Smart Geofencing**: Automatically validates waste pickups by analyzing vehicle dwell time within predefined GPS collection zones.
+- **📈 Spatial Heatmaps**: Generates dynamic garbage density maps from dashcam feeds to identify illegal dumping hotspots.
+- **🤖 Auto-Ticketing**: Zero-human-intervention ticket creation. AI detects waste, logs location, and assigns the nearest crew.
+- **📺 Live Mission Control**: A premium industrial dashboard featuring WebSocket-driven live video feeds and real-time operational analytics.
+- **⚖️ IoT Data Fusion**: Integrates with weighbridge sensors and OCR to validate vehicle loads and enforce weight tiers.
+
+---
+
+## 🏗️ System Architecture
+
+```mermaid
+graph TB
+    subgraph DATA_SOURCES["Data Sources"]
+        CAM1["CCTV Cameras"]
+        CAM2["Vehicle Dashcams"]
+        IOT["IoT Sensors (Weight/GPS)"]
+    end
+
+    subgraph AI_PIPELINE["AI Processing Engine"]
+        YOLO["YOLOv8 Detection"]
+        TRACK["ByteTrack Tracker"]
+        OCR["License Plate OCR"]
+    end
+
+    subgraph BACKEND["Mission Control (FastAPI)"]
+        RULES["Rule Engine"]
+        WS["WebSockets"]
+        DB[(PostgreSQL)]
+    end
+
+    subgraph FRONTEND["Command Center (React)"]
+        MAP["Live GIS Map"]
+        FEED["Real-time Video"]
+        ANALYTICS["Ops Analytics"]
+    end
+
+    DATA_SOURCES --> AI_PIPELINE
+    AI_PIPELINE --> BACKEND
+    BACKEND --> FRONTEND
+```
+
+---
+
+## 🛠️ Technology Stack
+
+| Layer | Technology |
+| :--- | :--- |
+| **Frontend** | React 18, Vite, Tailwind CSS, Leaflet.js, Recharts |
+| **Backend** | Python 3.11, FastAPI, WebSockets |
+| **AI/CV** | YOLOv8 (Ultralytics), OpenCV, ByteTrack, EasyOCR |
+| **Database** | PostgreSQL (Persistent), Redis (Real-time State) |
+| **Edge** | TensorRT, NVIDIA Jetson Orin Nano Super |
+
+---
+
+## 📂 Project Structure
+
+```text
+├── backend/                # FastAPI Application & AI Logic
+│   ├── ai/                 # YOLOv8 Inference & Tracking Logic
+│   ├── app/                # API Routers, Schemas, & CRUD
+│   └── main.py             # API Entry Point
+├── frontend/               # React Application (Cyber-Ops UI)
+│   ├── src/pages/          # Admin Panel & Worker Portal
+│   ├── src/components/     # Map & Analytics Components
+│   └── tailwind.config.js  # Industrial Theme Configuration
+├── run_server.py           # Unified Launch Script (API + Frontend)
+├── run_detection.py        # Independent AI Inference Engine
+└── SMART_WASTE_MANAGEMENT_PLAN.md # Detailed Implementation Roadmap
+```
+
+---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Python 3.8+
-- Node.js & npm
-- A webcam or video source
+- Python 3.11+
+- Node.js 18+
+- NVIDIA GPU (Optional, recommended for TensorRT optimization)
 
 ### Installation
 
-1. **Clone the repository**:
+1. **Clone the Repository**:
    ```bash
-   git clone <repository-url>
-   cd smart-waste-management
+   git clone https://github.com/Rudra-Gupta15/Smart-waste-monitoring-system.git
+   cd Smart-waste-monitoring-system
    ```
 
-2. **Setup Virtual Environment**:
+2. **Setup Backend**:
    ```bash
    python -m venv venv
-   .\venv\Scripts\activate
+   source venv/bin/activate  # Windows: .\venv\Scripts\activate
    pip install -r backend/requirements.txt
    ```
 
-3. **Install Frontend Dependencies**:
+3. **Setup Frontend**:
    ```bash
    cd frontend
    npm install
    cd ..
    ```
 
-### Configuration
+4. **Initialize AI Weights**:
+   Download `yolov8m.pt` and place it in the root directory.
 
-Create a `.env` file in the root or set environment variables:
-- `CAMERA_SOURCE`: Camera index (e.g., `0`) or RTSP URL.
-- `FRAME_INTERVAL`: Process every N-th frame (default: `3`).
-- `API_PORT`: Backend port (default: `8000`).
-
-## 🏃 Running the System
-
-You can start both the backend and frontend simultaneously using the provided runner:
-
+### Running the System
 ```bash
 python run_server.py
 ```
+- **Dashboard**: `http://localhost:5173`
+- **Worker Portal**: `http://localhost:5173/worker`
+- **API Docs**: `http://localhost:8000/docs`
 
-- **Frontend**: [http://localhost:5173](http://localhost:5173)
-- **API Documentation**: [http://localhost:8000/docs](http://localhost:8000/docs)
-- **Live Video Feed**: [http://localhost:8000/api/detection/video-feed](http://localhost:8000/api/detection/video-feed)
+---
 
-## 📁 Project Structure
+## 🖥️ Edge Deployment (NVIDIA Jetson)
 
-- `backend/`: FastAPI application, AI logic, and API routers.
-- `frontend/`: React source code and assets.
-- `data/`:
-  - `models/`: YOLO weights (`yolov8m.pt`, etc.).
-  - `evidence/`: Snapshots of detected waste events.
-- `run_server.py`: Main entry point to launch the entire stack.
+The system is optimized for the **NVIDIA Jetson Orin Nano Super**. To achieve maximum throughput:
+
+1. **Export to TensorRT**:
+   ```python
+   from ultralytics import YOLO
+   model = YOLO('yolov8m.pt')
+   model.export(format='engine', device=0)
+   ```
+2. **Requirements**: 8GB RAM, M.2 NVMe SSD, IMX219 CSI or USB 3.0 Cameras.
+
+---
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+Licensed under the **MIT License**. Developed by [Rudra Gupta](https://github.com/Rudra-Gupta15).

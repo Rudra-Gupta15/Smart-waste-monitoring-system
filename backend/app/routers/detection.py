@@ -37,7 +37,7 @@ async def update_camera_source(request: CameraSourceRequest):
 
     try:
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, _camera_stream.update_source, request.source)
+        loop.run_in_executor(None, _camera_stream.update_source, request.source)
         return {"status": "success", "source": request.source}
     except Exception as e:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
@@ -63,7 +63,7 @@ async def upload_video(file: UploadFile = File(...)):
         # and cause the Vite proxy to return 400/504 errors.
         abs_path = str(file_path.absolute())
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, _camera_stream.update_source, abs_path)
+        loop.run_in_executor(None, _camera_stream.update_source, abs_path)
 
         return {
             "status": "success",

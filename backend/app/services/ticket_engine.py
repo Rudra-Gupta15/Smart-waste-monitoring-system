@@ -160,7 +160,7 @@ def create_ticket_from_detection(detection_result):
         "id": f"ALT-{len(alerts) + 1:03d}",
         "type": "GARBAGE_DETECTED",
         "severity": detection_result.severity,
-        "message": f"Garbage detected at {area} - {detection_result.object_count} objects ({detection_result.severity})",
+        "message": f"Garbage detected at {area} ({detection_result.severity})",
         "ticket_id": ticket_id,
         "location": {"lat": lat, "lng": lng, "address": address, "area": area},
         "timestamp": time.time(),

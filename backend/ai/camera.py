@@ -55,12 +55,30 @@ class CameraStream:
         self._last_object_ids = set()
         self._last_severity = "NONE"
 
+        # Source-switching: only one update runs at a time;
+        # rapid uploads collapse to the most recent source.
+        self._update_lock = threading.Lock()
+        self._pending_source: Optional[Union[int, str]] = None
+
     def start(self):
         """Open camera and start capture/processing threads."""
         # Only load model once — skipping reload on every update_source() call
         # prevents blocking FastAPI's event loop for 5-15 seconds on each upload.
         if not self.detector._model_loaded:
             self.detector.load_model()
+
+        # Reset tracking/cache state so new sources do not carry over stale info
+        with self._lock:
+            self._latest_raw_frame = None
+            self._latest_result = None
+            self._latest_jpeg = None
+            self._frame_count = 0
+            self._last_object_ids = set()
+            self._last_severity = "NONE"
+            self._last_notification_time = 0
+            if self.detector:
+                self.detector.tracked_objects = []
+                self.detector.next_id = 1
 
         source = self.config.source
         print(f"[Camera] Opening source: {source}")
@@ -120,13 +138,44 @@ class CameraStream:
         print("[Camera] Stream stopped.")
 
     def update_source(self, new_source: Union[int, str]):
-        """Update camera source and restart stream."""
-        print(f"[Camera] Updating source to: {new_source}")
-        was_running = self.running
-        self.stop()
-        self.config.source = new_source
-        if was_running:
-            self.start()
+        """Update camera source and restart stream.
+
+        Rapid successive calls (e.g. user uploads several images quickly)
+        are collapsed: if an update is already in progress, we just store the
+        latest source as _pending_source and let the running update pick it up
+        when it finishes — avoiding a pile-up of sequential stop/start cycles.
+        """
+        # Register this as the latest desired source
+        self._pending_source = new_source
+
+        # If another update is already running, our source will be picked up
+        # by it when it finishes — no need to queue another blocking restart.
+        if not self._update_lock.acquire(blocking=False):
+            print(f"[Camera] Update already in progress — queued source: {new_source}")
+            return
+
+        try:
+            while True:
+                # Grab the latest pending source (may have been updated while we waited)
+                source = self._pending_source
+                self._pending_source = None
+
+                if source is None:
+                    break
+
+                print(f"[Camera] Updating source to: {source}")
+                was_running = self.running
+                self.stop()
+                self.config.source = source
+                if was_running:
+                    self.start()
+
+                # If another source was queued while we were restarting, loop and apply it
+                if self._pending_source is None:
+                    break
+                print(f"[Camera] New source queued during restart — applying: {self._pending_source}")
+        finally:
+            self._update_lock.release()
 
     def on_detection(self, callback):
         """Register a callback for when waste is detected: callback(FrameResult)."""

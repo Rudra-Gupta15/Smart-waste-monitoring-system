@@ -26,27 +26,29 @@ MIN_CONSECUTIVE_DETECTIONS = 1      # Confirm after 1 consistent detection (was 
 
 # Per-class confidence overrides — lower = more sensitive for that class
 PER_CLASS_CONFIDENCE = {
-    # Common litter (extremely sensitive — these are frequent waste items in messy piles)
-    "bottle":       0.02,
-    "cup":          0.02,
-    "bowl":         0.02,
-    "banana":       0.02,
-    "apple":        0.02,
-    "orange":       0.02,
-    "sandwich":     0.02,
-    "hot dog":      0.02,
-    "pizza":        0.02,
-    "cake":         0.02,
-    "carrot":       0.02,
-    "donut":        0.02,
-    "bird":         0.02,
-    "teddy bear":   0.02,
-    "sports ball":  0.02,
-    # Abandoned items (high sensitivity)
-    "backpack":     0.02,
-    "handbag":      0.02,
-    "suitcase":     0.02,
-    "umbrella":     0.02,
+    # Bottles and containers — very common litter
+    "bottle":       0.25,
+    "cup":          0.25,
+    "bowl":         0.30,
+    # Food items — raised threshold to avoid false positives on random objects
+    "banana":       0.40,
+    "apple":        0.40,
+    "orange":       0.40,
+    "sandwich":     0.40,
+    "hot dog":      0.40,
+    "pizza":        0.40,
+    "cake":         0.40,
+    "carrot":       0.40,
+    "donut":        0.40,
+    # Proxy detections (trash bags misclassified as these)
+    "bird":         0.35,
+    "teddy bear":   0.35,
+    "sports ball":  0.35,
+    # Abandoned items
+    "backpack":     0.30,
+    "handbag":      0.30,
+    "suitcase":     0.30,
+    "umbrella":     0.30,
     # Dumped appliances (somewhat lenient — large objects, easy to confirm)
     "toilet":       0.25,
     "refrigerator": 0.25,
@@ -54,10 +56,9 @@ PER_CLASS_CONFIDENCE = {
     "microwave":    0.25,
     "oven":         0.25,
     "toaster":      0.25,
-    # Furniture
-    "chair":        0.20,
-    "couch":        0.20,
-    "bench":        0.20,
+    # Furniture (only truly abandoned outdoor furniture — chairs/couches/benches removed to avoid false positives indoors)
+    "bed":          0.30,
+    "dining table": 0.30,
     # E-waste
     "cell phone":   0.15,
     "laptop":       0.20,
@@ -97,6 +98,23 @@ elif _root_yolo.exists():
 else:
     YOLO_MODEL = "yolov8m.pt"  # Let ultralytics auto-download
 
+# Secondary waste classifier configuration (Two-Stage pipeline)
+# ENABLED: Retrained with MobileNetV3-small backbone for >80% accuracy.
+USE_CLASSIFIER = True
+CLASSIFIER_MODEL_PATH = MODELS_DIR / "waste_classifier.pt"
+CLASSIFIER_CATEGORY_MAP = {
+    "battery": "E-Waste",
+    "biological": "Food Waste",
+    "cardboard": "Paper/Stationery",
+    "clothes": "Abandoned Item",
+    "glass": "Glass Waste",
+    "metal": "Metal Waste",
+    "paper": "Paper/Stationery",
+    "plastic": "Plastic Waste",
+    "shoes": "Abandoned Item",
+    "trash": "Misc Waste"
+}
+
 # COCO classes used as waste proxies (yolov8s.pt is COCO-pretrained, no custom garbage classes)
 # These are the best available COCO classes that appear as discarded waste
 
@@ -116,10 +134,12 @@ ABANDONED_ITEMS = {"suitcase", "backpack", "handbag", "umbrella"}
 HOUSEHOLD_WASTE = {"toilet", "refrigerator", "microwave", "oven", "toaster", "sink"}
 
 # Furniture and large objects
-FURNITURE_WASTE = {"chair", "couch", "bed", "dining table", "bench"}
+# NOTE: chair, couch, bench removed — they cause constant false positives indoors.
+# Only truly outdoor-abandoned items kept.
+FURNITURE_WASTE = {"bed", "dining table"}
 
 # Electronics / Small items often dumped
-ELECTRONIC_WASTE = {"cell phone", "remote", "mouse", "keyboard", "book", "tv", "laptop", "clock", "hair drier"}
+ELECTRONIC_WASTE = {"cell phone", "remote", "mouse", "keyboard", "book", "tv", "laptop", "clock", "hair drier", "skateboard"}
 
 # Combined waste classes (Refined to reduce false positives)
 WASTE_CLASSES = CONTAINER_WASTE | PLASTIC_WASTE | FOOD_WASTE | ABANDONED_ITEMS | HOUSEHOLD_WASTE | FURNITURE_WASTE | ELECTRONIC_WASTE

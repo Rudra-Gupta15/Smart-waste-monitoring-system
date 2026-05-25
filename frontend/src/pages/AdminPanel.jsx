@@ -642,8 +642,9 @@ function MapTab({ tickets, collectionPoints, workers, liveDetections, userLocati
                 <>
                   <div className="relative">
                     <img
-                      src="https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&q=80"
-                      alt="Station Facility"
+                      src={`/assets/stations/zone-${selectedStation}.jpg`}
+                      alt={`Zone ${selectedStation} Station Facility`}
+                      onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&q=80" }} // Fallback if image is missing
                       className="w-full h-48 object-cover"
                     />
                     <button
